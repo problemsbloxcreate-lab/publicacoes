@@ -535,7 +535,7 @@ $('#btConferir').onclick = async () => {
 // ---------- começo ----------
 async function comeca() {
   await EstudioLogin.pronto;
-  if (!pode('publicacoes.ver')) { document.querySelector('main').innerHTML = '<div class="cx vz">Você ainda não tem acesso ao Publicações. Peça para um ADM liberar.</div>'; return; }
+  if (window.EstudioPerm?.programa?.('publicacoes') === false) { document.querySelector('main').innerHTML = '<div class="cx vz">Você ainda não tem acesso ao Publicações. Peça para um ADM liberar.</div>'; return; }
   pinta(); buscar(false); await pintaEsperando();
   const q = new URLSearchParams(location.search).get('video');
   if (q) { history.replaceState(null, '', location.pathname); const v = ESP.find(x => x.id === q);

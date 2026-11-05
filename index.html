@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PUBLICAÇÕES · Estúdio Problems</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icone-180.png">
+<script src="/estudio-login.js"></script>
+<script src="/estudio-youtube.js"></script>
+<style>
+:root{--bg:#161618;--p:#1f1f23;--p2:#26262b;--ln:rgba(255,255,255,.1);--tx:#f5f5f7;--mu:#a1a1a6;--mu2:#6e6e73;--ac:#0a84ff;--ok:#30d158;--am:#ffcc33;--vm:#ff453a;--rx:#bf5af2;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(22,22,24,.85);backdrop-filter:blur(18px);border-bottom:.5px solid var(--ln);flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;min-width:0}.logo .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#2b0a0a;color:#ff5a4f;border:1px solid #ff5a4f;flex:none}
+.logo b{font-weight:800;font-size:18px;letter-spacing:1px;display:block;line-height:1.1}.logo small{color:var(--mu);font-size:11.5px}
+.sp{flex:1}
+.bt{height:30px;padding:0 12px;border-radius:8px;border:.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.bt:hover{background:rgba(255,255,255,.14)}.bt:disabled{opacity:.45;cursor:default}
+.bt.pri{background:linear-gradient(180deg,#2a92ff,#0a7aff);border-color:transparent;color:#fff}.bt.pri:hover{filter:brightness(1.08)}
+.bt.sm{height:26px;padding:0 9px;font-size:12.5px}.bt.perigo{color:#ff6961}
+.bt svg{width:15px;height:15px}
+main{max-width:1120px;margin:0 auto;padding:18px 16px 60px}
+.aviso{background:rgba(255,204,51,.1);border:.5px solid rgba(255,204,51,.4);border-radius:10px;padding:10px 12px;margin-bottom:14px;color:#ffe08a}
+.erro{background:rgba(255,69,58,.12);border:.5px solid rgba(255,69,58,.45);border-radius:10px;padding:10px 12px;margin:10px 0;color:#ffb0aa}
+h2{font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}h2 small{color:var(--mu);font-weight:400;font-size:12.5px}
+.fila{display:grid;gap:8px}
+.cx{background:var(--p);border:.5px solid var(--ln);border-radius:12px}
+.esp-it{display:flex;align-items:center;gap:12px;padding:10px 12px}
+.esp-it video{width:96px;height:54px;border-radius:6px;background:#000;object-fit:cover;flex:none}
+.esp-it .tx{flex:1;min-width:0}.esp-it .tx b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.esp-it small{color:var(--mu)}
+.hoje{padding:14px;display:grid;gap:10px}
+.hoje .resumo{color:var(--mu);font-size:13px}.hoje .resumo b{color:var(--tx)}
+.abas{display:flex;gap:4px;flex-wrap:wrap;margin:18px 0 10px;padding:3px;border-radius:10px;background:rgba(0,0,0,.3);width:max-content;max-width:100%}
+.abas button{border:0;background:none;height:28px;padding:0 12px;border-radius:8px;cursor:pointer;color:var(--mu)}
+.abas button.on{background:rgba(255,255,255,.14);color:var(--tx)}.abas i{font-style:normal;font-size:11.5px;margin-left:5px;color:var(--mu2)}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filtros input,.filtros select{height:30px;background:rgba(0,0,0,.25);border:.5px solid rgba(255,255,255,.14);border-radius:8px;padding:0 9px;outline:none;max-width:100%}
+.filtros input[type=search]{flex:1 1 220px;min-width:160px}
+.filtros input:focus,.filtros select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
+.lista{display:grid;gap:8px}
+.it{display:flex;gap:12px;padding:10px 12px;align-items:center}
+.it .th{width:128px;aspect-ratio:16/9;border-radius:7px;background:#000 center/cover no-repeat;flex:none;display:block}
+.it .tx{flex:1;min-width:0;display:grid;gap:3px}
+.it .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .ln{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:var(--mu);font-size:12.5px}
+.canal{display:inline-flex;align-items:center;gap:6px}.canal img,.canal .sem{width:18px;height:18px;border-radius:50%;background:#333;flex:none}
+.chip{font-size:11.5px;padding:1px 8px;border-radius:20px;border:.5px solid currentColor;white-space:nowrap}
+.chip.noAr{color:var(--ok)}.chip.agendado{color:var(--am)}.chip.naoListado{color:#64d2ff}.chip.privado{color:var(--mu)}
+.it .ac{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.vz{color:var(--mu2);padding:26px;text-align:center}
+.rod{color:var(--mu2);font-size:12px;margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.quem{display:inline-flex;align-items:center;gap:5px}.quem img{width:16px;height:16px;border-radius:50%}
+/* janela de publicar */
+.fundo{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
+.jan{width:min(620px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#242428;border:.5px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:18px 20px}
+.jan h3{margin:0 0 12px;font-size:16px}
+.jan label.r{display:block;font-size:12px;color:var(--mu);margin:12px 0 4px}
+.jan input[type=text],.jan input[type=datetime-local],.jan textarea{width:100%;background:rgba(0,0,0,.25);border:.5px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 10px;outline:none}
+.jan textarea{min-height:90px;resize:vertical}
+.jan input:focus,.jan textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
+.jan video{width:100%;max-height:240px;border-radius:8px;background:#000}
+.jan .canal-cx{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border:.5px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px}
+.jan .canal-cx img,.jan .canal-cx .sem{width:32px;height:32px;border-radius:50%;background:#333;flex:none}.jan .canal-cx .tx{flex:1;min-width:0}.jan .canal-cx small{color:var(--mu);display:block}
+.seg{display:inline-flex;padding:2px;border-radius:8px;background:rgba(0,0,0,.3);flex-wrap:wrap}.seg button{border:0;background:none;height:28px;padding:0 12px;border-radius:6px;cursor:pointer}.seg button.on{background:rgba(255,255,255,.16)}
+.opc{display:flex;gap:16px;flex-wrap:wrap}.opc label{display:flex;gap:6px;align-items:center;font-size:13px}
+.nota{font-size:12px;color:var(--mu);margin-top:8px}
+.pes{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
+.barra{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;margin:14px 0 6px}.barra i{display:block;height:100%;width:0;background:#fff;transition:width .2s}
+.okcx{background:rgba(48,209,88,.12);border:.5px solid rgba(48,209,88,.45);border-radius:10px;padding:10px 12px}.okcx a,.jan a{color:#64d2ff;word-break:break-all}
+@media (max-width:700px){.it{flex-wrap:wrap}.it .th{width:100%}.it .ac{justify-content:flex-start}.abas{width:100%}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><span class="ic" data-estudio-icone="auto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg></span><div><b>PUBLICAÇÕES</b><small>Estúdio Problems · vídeos no YouTube</small></div></div>
+  <div class="sp"></div>
+  <button class="bt" id="btConferir" title="Pergunta ao YouTube a situação dos SEUS vídeos neste canal (agendado, no ar, não listado)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Conferir no YouTube</button>
+  <button class="bt" id="btAtualizar" title="Busca a lista da equipe de novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Atualizar</button>
+  <button class="bt pri" id="btNovo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Enviar um vídeo</button>
+  <input type="file" id="arq" accept="video/*" hidden>
+  <span data-estudio-conta></span>
+</header>
+<main>
+  <div id="avisos"></div>
+  <div id="esperando"></div>
+  <h2>Hoje <small id="hojeData"></small></h2>
+  <div class="cx hoje" id="hoje"></div>
+  <div class="abas" id="abas"></div>
+  <div class="filtros">
+    <input type="search" id="fBusca" placeholder="Buscar pelo título…" aria-label="Buscar pelo título">
+    <select id="fCanal" aria-label="Canal"></select>
+    <select id="fProg" aria-label="Programa de origem"></select>
+    <select id="fPer" aria-label="Período"><option value="tudo">Qualquer data</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 3 meses</option><option value="prox">Daqui para a frente</option></select>
+    <select id="fQuem" aria-label="Quem enviou"></select>
+    <select id="fOrd" aria-label="Ordem"><option value="rec">Mais recentes primeiro</option><option value="ant">Mais antigos primeiro</option><option value="tit">Título (A–Z)</option></select>
+    <button class="bt sm" id="fLimpa">Limpar filtros</button>
+  </div>
+  <div class="lista" id="lista"></div>
+  <div class="rod"><span id="rodInfo"></span></div>
+</main>
+<script>
+'use strict';
+/* PUBLICAÇÕES (pedido da dona, 05/11/2026). Tudo que importa:
+   - O VÍDEO vai do navegador direto para o YouTube (/estudio-youtube.js). Os outros programas deixam o vídeo no IndexedDB 'ep-publicacoes'
+     e abrem esta página com ?video=<id>.
+   - A LISTA da equipe é UM JSON no turma-ia (GET/POST/DELETE /publicacoes). Fica guardada no localStorage 'ep-publicacoes-v1' e só é
+     buscada de novo quando tem mais de 10 min (ou no "Atualizar"). Filtros e ordem rodam aqui, sobre a lista baixada; o filtro
+     escolhido fica em 'ep-publicacoes-filtro'. Trocar de filtro NÃO pede nada à nuvem.
+   - Agendado: lembrete no calendário pessoal do Estúdio (localStorage 'ep-calendario', o mesmo do relógio/.ep-cal do estudio-conta.js).
+   - Nada automático: cada envio é um clique; "Conferir no YouTube" só quando a pessoa clica (1 unidade de cota a cada 50 vídeos). */
+const SERV = 'https://turma-ia.problemsraiz.workers.dev', LS = 'ep-publicacoes-v1', LSF = 'ep-publicacoes-filtro', VELHA = 10 * 60e3;
+const YT = window.EstudioYouTube, $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pode = k => { try { return window.EstudioPerm?.pode?.(k) ?? true; } catch { return true; } };
+const PROGS = { animador: 'Animador', shorts: 'Shorts', editor: 'Editor', publicacoes: 'Publicações' };
+const mb = n => { const m = n / 1048576; return (m < 10 ? m.toFixed(1).replace('.', ',') : Math.round(m)) + ' MB'; };
+const hora = t => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const dataH = t => { const d = new Date(t), h = new Date(); const dia = d.toDateString() === h.toDateString() ? 'hoje' : new Date(+h + 864e5).toDateString() === d.toDateString() ? 'amanhã' : new Date(+h - 864e5).toDateString() === d.toDateString() ? 'ontem' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: d.getFullYear() !== h.getFullYear() ? 'numeric' : undefined }).replace('.', ''); return `${dia} às ${hora(t)}`; };
+const mesmoDia = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+
+// ---------- situação de cada item (calculada aqui: um agendado vira "no ar" sozinho quando passa a hora) ----------
+const estado = i => i.privacidade === 'unlisted' ? 'naoListado' : i.privacidade === 'public' ? 'noAr' : i.publicaEm ? (i.publicaEm > Date.now() ? 'agendado' : 'noAr') : 'privado';
+const ROT = { noAr: 'No ar', agendado: 'Agendado', naoListado: 'Não listado', privado: 'Privado' };
+const quando = i => estado(i) === 'agendado' || (i.publicaEm && estado(i) === 'noAr') ? i.publicaEm : i.enviadoEm; // a hora que vale (sai / saiu / enviado)
+
+// ---------- lista da equipe (um JSON, com cache) ----------
+let L = (() => { try { const v = JSON.parse(localStorage.getItem(LS) || 'null'); return v && Array.isArray(v.itens) ? v : { itens: [], em: 0 }; } catch { return { itens: [], em: 0 }; } })();
+const guardaL = v => { L = { itens: v.itens || [], mod: v.mod || 0, em: Date.now() }; try { localStorage.setItem(LS, JSON.stringify(L)); } catch { } };
+const pede = async (caminho, op = {}) => {
+  const t = await EstudioLogin.token(); const r = await fetch(SERV + caminho, { ...op, headers: { ...(op.headers || {}), authorization: t, ...(op.body ? { 'content-type': 'application/json' } : {}) } });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error?.message || `A nuvem respondeu ${r.status}.`); return j;
+};
+let buscando = null, erroNuvem = '';
+const buscar = (forca) => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
+const salvaItem = async item => { const v = await pede('/publicacoes', { method: 'POST', body: JSON.stringify({ item }) }); guardaL(v); pinta(); };
+
+// ---------- nomes de quem enviou (código u… → nome e foto, pelo estudio-conta.js) ----------
+const NOMES = {};
+const nomeDe = async u => { if (!u || NOMES[u]) return; NOMES[u] = { nome: '…' }; try { const q = await window.EstudioConta?.quem?.(u); NOMES[u] = { nome: q?.nome || 'Alguém da equipe', foto: q?.foto || '' }; } catch { NOMES[u] = { nome: 'Alguém da equipe' }; } pinta(); };
+
+// ---------- filtros (no navegador, guardados no localStorage) ----------
+const F0 = { aba: 'todos', busca: '', canal: '', prog: '', per: 'tudo', quem: '', ord: 'rec' };
+let F = (() => { try { return { ...F0, ...JSON.parse(localStorage.getItem(LSF) || '{}') }; } catch { return { ...F0 }; } })();
+const guardaF = () => { try { localStorage.setItem(LSF, JSON.stringify(F)); } catch { } };
+const ABAS = [['todos', 'Todos'], ['agendado', 'Futuros'], ['naoListado', 'Não listados'], ['noAr', 'Publicados / no ar']];
+const passa = (i, semAba) => {
+  const e = estado(i);
+  if (!semAba && F.aba !== 'todos' && e !== F.aba) return false;
+  if (F.canal && i.canal?.id !== F.canal) return false;
+  if (F.prog && (i.programa || 'publicacoes') !== F.prog) return false;
+  if (F.quem === 'eu' ? !i.meu : F.quem && i.por !== F.quem) return false;
+  if (F.busca && !String(i.titulo || '').toLowerCase().includes(F.busca.toLowerCase())) return false;
+  const t = quando(i);
+  if (F.per === 'prox') { if (!(t >= new Date().setHours(0, 0, 0, 0))) return false; }
+  else if (F.per !== 'tudo' && t < Date.now() - +F.per * 864e5) return false;
+  return true;
+};
+
+// ---------- pintar ----------
+const thumb = id => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
+const canalHtml = c => `<span class="canal">${c?.foto ? `<img src="${esc(c.foto)}" alt="" referrerpolicy="no-referrer">` : '<span class="sem"></span>'}${esc(c?.nome || 'Canal')}</span>`;
+const quemHtml = u => { const n = NOMES[u]; if (!n) nomeDe(u); return `<span class="quem">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}${esc(n?.nome || '…')}</span>`; };
+const linhaQuando = i => { const e = estado(i), t = quando(i); return e === 'agendado' ? `sai ${dataH(t)}` : e === 'noAr' ? `${i.publicaEm ? 'saiu' : 'publicado'} ${dataH(t)}` : `enviado ${dataH(t)}`; };
+function itemHtml(i) {
+  const e = estado(i), link = 'https://youtu.be/' + encodeURIComponent(i.id);
+  return `<div class="cx it" data-id="${esc(i.id)}"><a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${thumb(i.id)}')" aria-label="Abrir no YouTube"></a>
+    <div class="tx"><b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b>
+      <div class="ln"><span class="chip ${e}">${ROT[e]}</span><span>${linhaQuando(i)}</span>${canalHtml(i.canal)}</div>
+      <div class="ln"><span>${esc(PROGS[i.programa] || 'Publicações')}</span>·${quemHtml(i.por)}</div></div>
+    <div class="ac"><a class="bt sm" href="${link}" target="_blank" rel="noopener">Abrir</a>${i.meu ? `<a class="bt sm" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>` : ''}<button class="bt sm" data-cp="${esc(link)}">Copiar link</button>${e === 'agendado' ? `<button class="bt sm" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>` : ''}${i.meu ? `<button class="bt sm perigo" data-tira="${esc(i.id)}" title="Tira só desta lista (no YouTube o vídeo continua)">Tirar da lista</button>` : ''}</div></div>`;
+}
+function pinta() {
+  const I = L.itens || [], hoje = new Date();
+  $('#hojeData').textContent = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  // HOJE: o que sai (ou saiu) hoje, com canal e hora — sem filtro de aba, respeitando os outros filtros
+  const H = I.filter(i => (estado(i) === 'agendado' || estado(i) === 'noAr') && mesmoDia(quando(i), hoje) && passa(i, true)).sort((a, b) => quando(a) - quando(b));
+  const canaisH = [...new Set(H.map(i => i.canal?.nome))];
+  $('#hoje').innerHTML = H.length ? `<div class="resumo"><b>${H.length} vídeo${H.length > 1 ? 's' : ''}</b> ${H.length > 1 ? 'saem' : 'sai'} hoje em <b>${canaisH.map(esc).join(', ')}</b>.</div>${H.map(itemHtml).join('')}` : '<div class="vz">Nada saindo hoje.</div>';
+  // abas com contagem (sobre os outros filtros)
+  const base = I.filter(i => passa(i, true));
+  $('#abas').innerHTML = ABAS.map(([k, n]) => `<button data-aba="${k}" class="${F.aba === k ? 'on' : ''}">${n}<i>${k === 'todos' ? base.length : base.filter(i => estado(i) === k).length}</i></button>`).join('');
+  // opções dos filtros, tiradas da própria lista
+  const canais = new Map(I.map(i => [i.canal?.id, i.canal?.nome]).filter(([k]) => k)), progs = [...new Set(I.map(i => i.programa || 'publicacoes'))], pessoas = [...new Set(I.map(i => i.por).filter(Boolean))];
+  pessoas.forEach(u => NOMES[u] || nomeDe(u));
+  const opt = (v, n, sel) => `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(n)}</option>`;
+  $('#fCanal').innerHTML = opt('', 'Todos os canais', F.canal) + [...canais].map(([k, n]) => opt(k, n, F.canal)).join('');
+  $('#fProg').innerHTML = opt('', 'Todos os programas', F.prog) + progs.map(p => opt(p, PROGS[p] || p, F.prog)).join('');
+  $('#fQuem').innerHTML = opt('', 'Toda a equipe', F.quem) + opt('eu', 'Só os meus', F.quem) + pessoas.map(u => opt(u, NOMES[u]?.nome || '…', F.quem)).join('');
+  $('#fPer').value = F.per; $('#fOrd').value = F.ord; if ($('#fBusca') !== document.activeElement) $('#fBusca').value = F.busca;
+  const V = I.filter(i => passa(i)).sort(F.ord === 'tit' ? (a, b) => String(a.titulo).localeCompare(b.titulo, 'pt-BR') : F.ord === 'ant' ? (a, b) => quando(a) - quando(b) : (a, b) => quando(b) - quando(a));
+  $('#lista').innerHTML = V.length ? V.map(itemHtml).join('') : `<div class="cx vz">${I.length ? 'Nada com esses filtros.' : 'Nenhum vídeo publicado pelo Estúdio ainda.'}</div>`;
+  $('#rodInfo').textContent = `${I.length} na lista da equipe · ${L.em ? 'atualizada ' + dataH(L.em).replace('hoje às ', 'às ') : 'ainda não buscada'}${buscando ? ' · buscando…' : ''}`;
+  $('#avisos').innerHTML = (!YT?.configurado() ? '<div class="aviso">A publicação no YouTube ainda não foi ligada: falta a dona terminar a parte do Google Cloud e pôr o segredo <b>YOUTUBE_CLIENT_ID</b>. A lista funciona; enviar, ainda não.</div>' : '') + (erroNuvem ? `<div class="erro">Não consegui buscar a lista: ${esc(erroNuvem)}</div>` : '');
+  $('#btNovo').hidden = !pode('publicacoes.publicar');
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.aba) { F.aba = b.dataset.aba; guardaF(); pinta(); }
+  else if (b.dataset.cp) navigator.clipboard?.writeText(b.dataset.cp).then(() => { b.textContent = 'Copiado'; setTimeout(pinta, 1200); });
+  else if (b.dataset.lemb) { const i = L.itens.find(x => x.id === b.dataset.lemb); if (i) { poeLembrete(i); window.EstudioConta?.calendario?.(leCal().find(x => x.yt === i.id)); pinta(); } }
+  else if (b.dataset.tira) { const i = L.itens.find(x => x.id === b.dataset.tira); if (!i || !confirm(`Tirar "${i.titulo}" da lista do Estúdio? No YouTube o vídeo continua como está.`)) return; b.disabled = true; try { guardaL(await pede('/publicacoes?id=' + encodeURIComponent(i.id), { method: 'DELETE' })); } catch (er) { alert(er.message); } pinta(); }
+});
+$('#fBusca').oninput = e => { F.busca = e.target.value; guardaF(); pinta(); };
+[['#fCanal', 'canal'], ['#fProg', 'prog'], ['#fPer', 'per'], ['#fQuem', 'quem'], ['#fOrd', 'ord']].forEach(([s, k]) => $(s).onchange = e => { F[k] = e.target.value; guardaF(); pinta(); });
+$('#fLimpa').onclick = () => { F = { ...F0, aba: F.aba }; guardaF(); pinta(); };
+$('#btAtualizar').onclick = () => { buscar(true); pinta(); };
+
+// ---------- calendário do Estúdio (o mesmo do relógio) ----------
+const CAL = 'ep-calendario';
+const leCal = () => { try { const v = JSON.parse(localStorage.getItem(CAL) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+const temLembrete = id => leCal().some(x => x.yt === id);
+function poeLembrete(i) {
+  if (!i.publicaEm || temLembrete(i.id)) return;
+  const l = leCal(); l.push({ id: Date.now(), tipo: 'aviso', t: ('YouTube: ' + i.titulo).slice(0, 80), txt: `Sai em ${i.canal?.nome || 'canal'} · https://youtu.be/${i.id}`, em: i.publicaEm, avisar: true, yt: i.id });
+  try { localStorage.setItem(CAL, JSON.stringify(l.slice(-500))); } catch { }
+}
+
+// ---------- vídeos esperando (vieram dos outros programas pelo IndexedDB) ----------
+let ESP = [];
+async function pintaEsperando() {
+  try { ESP = (await YT.fila.todos()).sort((a, b) => b.em - a.em); } catch { ESP = []; }
+  const urls = [];
+  $('#esperando').innerHTML = ESP.length ? `<h2>Esperando publicação <small>guardados só neste navegador</small></h2><div class="fila">${ESP.map(v => `<div class="cx esp-it"><video muted preload="metadata" data-v="${esc(v.id)}"></video><div class="tx"><b>${esc(v.titulo || v.nome)}</b><small>${esc(PROGS[v.programa] || 'Vídeo')} · ${mb(v.blob?.size || 0)} · exportado ${dataH(v.em)}</small></div>${pode('publicacoes.publicar') ? `<button class="bt sm pri" data-pub="${esc(v.id)}">Publicar…</button>` : ''}<button class="bt sm perigo" data-desc="${esc(v.id)}">Descartar</button></div>`).join('')}</div>` : '';
+  ESP.forEach(v => { const el = document.querySelector(`video[data-v="${CSS.escape(v.id)}"]`); if (el && v.blob) { const u = URL.createObjectURL(v.blob); urls.push(u); el.src = u + '#t=0.5'; } });
+  document.querySelectorAll('[data-pub]').forEach(b => b.onclick = () => publicar(ESP.find(v => v.id === b.dataset.pub)));
+  document.querySelectorAll('[data-desc]').forEach(b => b.onclick = async () => { if (!confirm('Descartar este vídeo da espera? (o arquivo exportado que você baixou continua no computador)')) return; await YT.fila.tira(b.dataset.desc); pintaEsperando(); });
+}
+$('#btNovo').onclick = () => $('#arq').click();
+$('#arq').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) publicar({ id: null, blob: f, nome: f.name, titulo: f.name.replace(/\.[^.]+$/, ''), programa: 'publicacoes' }); };
+
+// ---------- janela de publicar ----------
+function publicar(v) {
+  if (!v) return; if (!YT.configurado()) return alert('A publicação no YouTube ainda não foi ligada (falta a parte da dona no Google Cloud).');
+  YT.carregaGis().catch(() => { });
+  let canal = YT.canalPadrao(), fase = 'form', erro = '';
+  const podeAg = pode('publicacoes.agendar');
+  const st = { titulo: String(v.titulo || '').replace(/[<>]/g, '').slice(0, 100), desc: String(v.descricao || ''), kids: null, modo: 'naoListado', em: '' };
+  const fundo = document.createElement('div'); fundo.className = 'fundo'; fundo.innerHTML = '<div class="jan" role="dialog" aria-modal="true" aria-label="Publicar no YouTube"></div>'; document.body.appendChild(fundo);
+  const J = fundo.firstChild, url = URL.createObjectURL(v.blob);
+  const fecha = () => { if (fase === 'enviando') return; URL.revokeObjectURL(url); fundo.remove(); removeEventListener('keydown', tecla); };
+  const tecla = e => { if (e.key === 'Escape') fecha(); }; addEventListener('keydown', tecla);
+  fundo.addEventListener('mousedown', e => { if (e.target === fundo) fecha(); });
+  const minAg = () => { const d = new Date(Date.now() + 15 * 60e3); d.setSeconds(0, 0); return new Date(d - d.getTimezoneOffset() * 60e3).toISOString().slice(0, 16); };
+  const form = () => {
+    J.innerHTML = `<h3>Publicar no YouTube</h3><video src="${url}" controls preload="metadata"></video>
+      <label class="r">Canal (só os canais da SUA conta do Google)</label>
+      <div class="canal-cx">${canal ? `${canal.foto ? `<img src="${esc(canal.foto)}" alt="" referrerpolicy="no-referrer">` : '<span class="sem"></span>'}<div class="tx"><b>${esc(canal.nome)}</b><small>Canal padrão deste navegador</small></div><button class="bt sm" data-trocar>Trocar canal</button>` : `<div class="tx"><b>Nenhum canal escolhido</b><small>O Google pergunta a conta e o canal (quem tem mais de um canal escolhe ali).</small></div><button class="bt sm pri" data-trocar>Escolher canal</button>`}</div>
+      <label class="r">Título <span style="float:right" data-ct></span></label><input type="text" maxlength="100" data-tit value="${esc(st.titulo)}">
+      <label class="r">Descrição</label><textarea maxlength="5000" data-desc>${esc(st.desc)}</textarea>
+      <label class="r">É feito para crianças? (o YouTube exige essa resposta)</label>
+      <div class="opc"><label><input type="radio" name="kids" value="nao"${st.kids === false ? ' checked' : ''}> Não</label><label><input type="radio" name="kids" value="sim"${st.kids === true ? ' checked' : ''}> Sim, é para crianças</label></div>
+      <label class="r">Como sai</label>
+      <div class="seg">${[['naoListado', 'Deixar não listado'], ['agora', 'Publicar agora'], ...(podeAg ? [['agendado', 'Agendar']] : [])].map(([k, n]) => `<button type="button" data-modo="${k}" class="${st.modo === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+      ${st.modo === 'agendado' ? `<label class="r">Sai em (hora deste computador)</label><input type="datetime-local" data-em min="${minAg()}" value="${esc(st.em || minAg())}"><div class="nota">Sobe agora como privado e o próprio YouTube publica na hora marcada (mesmo com o computador desligado). Entra um lembrete no seu calendário do Estúdio.</div>` : ''}
+      <div class="nota">${st.modo === 'naoListado' ? 'Só quem tiver o link vê. Dá para publicar depois no YouTube Studio.' : st.modo === 'agora' ? 'Fica público assim que o YouTube terminar de processar.' : ''}</div>
+      ${erro ? `<div class="erro">${esc(erro)}</div>` : ''}
+      <div class="pes"><button class="bt" data-f>Cancelar</button><button class="bt pri" data-ok>${st.modo === 'agendado' ? 'Agendar' : st.modo === 'agora' ? 'Publicar agora' : 'Enviar não listado'}</button></div>`;
+    const q = s => J.querySelector(s), tit = q('[data-tit]'), ct = () => { q('[data-ct]').textContent = tit.value.length + '/100'; }; ct();
+    tit.oninput = () => { st.titulo = tit.value; ct(); }; q('[data-desc]').oninput = e => { st.desc = e.target.value; };
+    J.querySelectorAll('[name=kids]').forEach(r => r.onchange = () => { st.kids = r.value === 'sim'; });
+    J.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { st.modo = b.dataset.modo; erro = ''; form(); });
+    const em = q('[data-em]'); if (em) { st.em = em.value; em.onchange = () => { st.em = em.value; }; }
+    q('[data-f]').onclick = fecha;
+    q('[data-trocar]').onclick = async e => { e.target.disabled = true; erro = ''; try { const t = await YT.entrar(true); canal = t.canal; YT.gravarPadrao(canal); } catch (er) { erro = er.message; } form(); };
+    q('[data-ok]').onclick = vai;
+  };
+  const confirma = c => new Promise(ok => {
+    J.innerHTML = `<h3>Qual canal?</h3><p>${canal ? `O Google entrou no canal <b>${esc(c.nome)}</b>, mas o padrão deste navegador é <b>${esc(canal.nome)}</b>.` : `Publicar no canal <b>${esc(c.nome)}</b>?`}</p>
+      <div class="canal-cx">${c.foto ? `<img src="${esc(c.foto)}" alt="" referrerpolicy="no-referrer">` : '<span class="sem"></span>'}<div class="tx"><b>${esc(c.nome)}</b><small>Vira o canal padrão deste navegador</small></div></div>
+      <div class="pes"><button class="bt" data-n>Escolher outro canal</button><button class="bt pri" data-s>Usar ${esc(c.nome)}</button></div>`;
+    J.querySelector('[data-s]').onclick = () => ok(true); J.querySelector('[data-n]').onclick = () => ok(false);
+  });
+  async function vai() {
+    erro = ''; st.titulo = st.titulo.replace(/[<>]/g, '').trim();
+    if (!st.titulo) { erro = 'Escreva um título.'; return form(); }
+    if (st.kids === null) { erro = 'Responda se o vídeo é feito para crianças.'; return form(); }
+    const publicaEm = st.modo === 'agendado' ? new Date(st.em).getTime() : null;
+    if (st.modo === 'agendado' && !(publicaEm > Date.now() + 5 * 60e3)) { erro = 'Escolha uma hora pelo menos 5 minutos no futuro.'; return form(); }
+    J.innerHTML = '<h3>Publicar no YouTube</h3><p>Abrindo o login do Google…</p><p class="nota">Se nada aparecer, libere as janelas (pop-ups) deste site.</p>';
+    let t;
+    try {
+      t = await YT.entrar(!canal);
+      while (!canal || t.canal.id !== canal.id) { if (await confirma(t.canal)) break; J.innerHTML = '<p>Escolha a conta e o canal na janela do Google…</p>'; t = await YT.entrar(true); }
+      canal = t.canal; YT.gravarPadrao(canal);
+    } catch (er) { erro = er.message; return form(); }
+    fase = 'enviando'; const sair = e => { e.preventDefault(); e.returnValue = ''; }; addEventListener('beforeunload', sair);
+    J.innerHTML = `<h3>Enviando para ${esc(canal.nome)}</h3><p><b>${esc(st.titulo)}</b></p><div class="barra"><i></i></div><div class="nota"><span data-pp>0%</span> · <span data-pt>começando</span></div><p class="nota">Não feche esta aba até terminar.</p><div class="pes"><button class="bt" data-c>Cancelar o envio</button></div>`;
+    const barra = J.querySelector('.barra i'), t0 = performance.now(); let cancelou = false;
+    J.querySelector('[data-c]').onclick = e => { cancelou = true; e.target.disabled = true; YT.cancelar(); };
+    const prog = f => { barra.style.width = (f * 100).toFixed(1) + '%'; J.querySelector('[data-pp]').textContent = Math.floor(f * 100) + '%'; const s = (performance.now() - t0) / 1000; J.querySelector('[data-pt]').textContent = `${mb(f * v.blob.size)} de ${mb(v.blob.size)}${f > .03 && f < 1 ? ` · falta cerca de ${Math.max(1, Math.round((s / f - s) / 60))} min` : ''}`; };
+    let r;
+    try { r = await YT.enviar(t.token, v.blob, { titulo: st.titulo, descricao: st.desc, criancas: st.kids, modo: st.modo, publicaEm }, prog); }
+    catch (er) { fase = 'form'; removeEventListener('beforeunload', sair); erro = cancelou || er.message === 'cancelado' ? 'Envio cancelado. Nada foi publicado (o YouTube descarta o envio pela metade).' : er.message; return form(); }
+    fase = 'fim'; removeEventListener('beforeunload', sair);
+    const item = { id: r.id, titulo: st.titulo, canal, modo: st.modo, privacidade: r.status?.privacyStatus || (st.modo === 'agora' ? 'public' : st.modo === 'agendado' ? 'private' : 'unlisted'), publicaEm, enviadoEm: Date.now(), programa: v.programa || 'publicacoes' };
+    if (st.modo === 'agendado') poeLembrete(item);
+    if (v.id) { try { await YT.fila.tira(v.id); } catch { } pintaEsperando(); }
+    let avisoLista = ''; try { await salvaItem(item); } catch (er) { avisoLista = `<div class="erro">O vídeo foi para o YouTube, mas não entrou na lista do Estúdio: ${esc(er.message)}. Guarde o link.</div>`; L.itens = [{ ...item, meu: true }, ...(L.itens || [])]; pinta(); }
+    const link = 'https://youtu.be/' + r.id;
+    J.innerHTML = `<h3>Pronto</h3><div class="okcx"><b>${st.modo === 'agendado' ? `Agendado para ${dataH(publicaEm)}` : st.modo === 'agora' ? 'Publicado' : 'Enviado como não listado'} em ${esc(canal.nome)}.</b><br><a href="${link}" target="_blank" rel="noopener">${link}</a></div>
+      ${avisoLista}<p class="nota">O YouTube ainda processa o vídeo por alguns minutos. Miniatura, legendas e outros detalhes: <a href="https://studio.youtube.com/video/${r.id}/edit" target="_blank" rel="noopener">abrir no YouTube Studio</a>.${st.modo === 'agendado' ? ' O lembrete entrou no seu calendário do Estúdio.' : ''}</p>
+      <div class="pes"><button class="bt" data-cp="${link}">Copiar o link</button><button class="bt pri" data-f>Fechar</button></div>`;
+    J.querySelector('[data-f]').onclick = fecha;
+  }
+  form();
+}
+
+// ---------- conferir no YouTube (só quando a pessoa clica; só os SEUS vídeos do canal em que ela entrar) ----------
+$('#btConferir').onclick = async () => {
+  const b = $('#btConferir'); b.disabled = true;
+  try {
+    const t = await YT.entrar(false), meus = L.itens.filter(i => i.meu && i.canal?.id === t.canal.id);
+    if (!meus.length) { alert(`Nenhum vídeo seu do canal ${t.canal.nome} na lista.`); return; }
+    const s = await YT.situacao(t.token, meus.map(i => i.id)); let mud = 0;
+    for (const i of meus) { const x = s[i.id]; const novo = x ? { ...i, privacidade: x.privacidade || i.privacidade, publicaEm: x.publicaEm || (x.privacidade === 'public' ? i.publicaEm : null), titulo: x.titulo || i.titulo } : null;
+      if (novo && (novo.privacidade !== i.privacidade || novo.publicaEm !== i.publicaEm || novo.titulo !== i.titulo)) { const { meu, por, ...item } = novo; await salvaItem(item); mud++; } }
+    const sumiu = meus.filter(i => !s[i.id]).length;
+    alert(`${t.canal.nome}: ${meus.length} vídeo${meus.length > 1 ? 's' : ''} conferido${meus.length > 1 ? 's' : ''}, ${mud} mudou${mud === 1 ? '' : 'aram'} no YouTube.${sumiu ? ` ${sumiu} não existe${sumiu > 1 ? 'm' : ''} mais lá (pode tirar da lista).` : ''}`);
+  } catch (er) { alert(er.message); } finally { b.disabled = false; }
+};
+
+// ---------- começo ----------
+async function comeca() {
+  await EstudioLogin.pronto;
+  if (!pode('publicacoes.ver')) { document.querySelector('main').innerHTML = '<div class="cx vz">Você ainda não tem acesso ao Publicações. Peça para um ADM liberar.</div>'; return; }
+  pinta(); buscar(false); await pintaEsperando();
+  const q = new URLSearchParams(location.search).get('video');
+  if (q) { history.replaceState(null, '', location.pathname); const v = ESP.find(x => x.id === q); if (v && pode('publicacoes.publicar')) publicar(v); }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { buscar(false); pintaEsperando(); } });
+  setInterval(() => document.visibilityState === 'visible' && pinta(), 60e3); // "agendado" vira "no ar" na hora, sem pedir nada
+  addEventListener('storage', e => { if (e.key === LS) { try { L = JSON.parse(e.newValue) || L; } catch { } pinta(); } });
+  window.EstudioConta?.espaco?.registrar({ programa: 'Publicações', async listar() { return ESP.map(v => ({ nome: v.titulo || v.nome, bytes: v.blob?.size || 0, data: v.em, rotuloBaixar: 'Baixar o vídeo', baixar: async () => { const a = document.createElement('a'); a.href = URL.createObjectURL(v.blob); a.download = v.nome || 'video.mp4'; a.click(); }, apagar: async () => { await YT.fila.tira(v.id); pintaEsperando(); } })); } });
+}
+comeca();
+</script>
+<script src="/estudio-conta.js" defer></script>
+</body>
+</html>

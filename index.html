@@ -294,13 +294,14 @@ function cardHtml(i) {
     const real = fx !== 'concluido' && fx !== 'pedido', loc = localDe(i), link = real ? 'https://youtu.be/' + encodeURIComponent(i.id) : '';
     const img = real ? thumbYt(i.id) : i.thumb || '';
     th = real ? `<a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${img}')" aria-label="Abrir no YouTube"></a>`
-      : `<span class="th" style="${img ? `background-image:url('${img}')` : ''}"></span>`;
+      : `<span class="th" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}"></span>`;
     tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${linhaQuando(i)}</div>
       <div class="ln">${canalHtml(canalDe(i))}${fx === 'pedido' ? `<span>${esc(MODOS[i.modo] || '')}</span>` : ''}</div>
       <div class="ln"><span>${esc(PROGS[i.programa] || 'Publicações')}</span>·${quemHtml(i.por)}${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>`;
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
     if (fx === 'agendado') ac.push(`<button class="lk" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>`);
+    if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O Animador abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
     if (!real && podePub) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
     if (fx === 'concluido' && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
     if (loc) ac.push(`<button class="lk" data-baixa="${esc(loc.id)}">Baixar</button>`);
@@ -476,7 +477,7 @@ function painelMover(i, faixaAlvo) {
 
 // ---------- cliques ----------
 document.addEventListener('click', async e => {
-  const b = e.target.closest('button,[data-mover]'); if (!b) return;
+  const b = e.target.closest('button,[data-mover],[data-pubi]'); if (!b) return;
   const d = b.dataset;
   if (d.piv) { F.piv = d.piv; guardaF(); pinta(); }
   else if (d.agfmt) { F.agFmt = d.agfmt; guardaF(); pinta(); }
@@ -486,6 +487,7 @@ document.addEventListener('click', async e => {
   else if (d.cp) navigator.clipboard?.writeText(d.cp).then(() => toast('Link copiado.'));
   else if (d.lemb) { const i = L.itens.find(x => x.id === d.lemb); if (i) { poeLembrete(i); window.EstudioConta?.calendario?.(leCal().find(x => x.yt === i.id)); pinta(); } }
   else if (d.pubi) publicarItem(L.itens.find(x => x.id === d.pubi));
+  else if (d.gera) gerarVideo(L.itens.find(x => x.id === d.gera));
   else if (d.pub) publicar(ESP.find(v => v.id === d.pub));
   else if (d.org) organizar(ESP.find(v => v.id === d.org));
   else if (d.baixa) { const v = ESP.find(x => x.id === d.baixa); if (v) baixar(v.blob, v.nome); }
@@ -585,9 +587,44 @@ async function organizar(v) {
 
 // ---------- PUBLICAR (um vídeo): escolher o jeito, preencher, mandar ----------
 // um item da equipe (não publicado ou pedido): usa o vídeo deste navegador ou pede o arquivo
+// GERAR O VÍDEO AQUI (pedido da dona, 10/11/2026): não publicado de uma animação da nuvem → o Animador abre num quadro desta página
+// (/animador/?nuvem=<id>&exportar=publicacoes&item=<id>), exporta e deixa o vídeo no IndexedDB ligado ao item. Editor e Shorts ainda não.
+const podeGerar = i => !!i?.concluido && /^\/animador\/\?nuvem=[A-Za-z0-9_-]{2,40}$/.test(i.abrir || '');
+function gerarVideo(i) {
+  if (!podeGerar(i)) return Promise.resolve(null);
+  return new Promise(ok => {
+    const W = janela(), J = W.J; W.prender(true);
+    const sair = e => { e.preventDefault(); e.returnValue = ''; }; addEventListener('beforeunload', sair);
+    J.innerHTML = `<h3>Gerando o vídeo · ${esc(i.titulo)}</h3><p class="nota">O Animador abre aqui embaixo e exporta a animação inteira, em qualidade máxima, com o som e as legendas da última exportação. Não feche esta aba.</p>
+      <div class="barra"><i></i></div><div class="nota" data-pt>abrindo a animação da nuvem…</div>
+      <iframe title="Animador exportando" style="width:100%;height:44vh;border:0;background:#000;margin-top:10px;display:block"></iframe>
+      <div class="pes"><button class="bt" data-c>Cancelar</button></div>`;
+    const fr = J.querySelector('iframe'), pt = J.querySelector('[data-pt]'), bi = J.querySelector('.barra i');
+    let feito = false; const acaba = v => { if (feito) return; feito = true; removeEventListener('message', ouve); removeEventListener('beforeunload', sair); W.prender(false); fr.src = 'about:blank'; W.fecha(); ok(v); };
+    const ouve = async e => {
+      if (e.origin !== location.origin || e.source !== fr.contentWindow || e.data?.item !== i.id) return; const d = e.data;
+      if (d.tipo === 'ep-exp-prog') { bi.style.width = (Math.max(0, Math.min(1, +d.f || 0)) * 100).toFixed(1) + '%'; pt.textContent = `${Math.floor((+d.f || 0) * 100)}%${d.txt ? ' · ' + d.txt : ''}`; }
+      else if (d.tipo === 'ep-exp-pronto') { await carregaLocais(); const v = ESP.find(x => x.id === d.id) || null; toast(v ? 'Vídeo gerado: está neste navegador.' : 'O vídeo foi gerado, mas não achei aqui. Atualize a página.', 'var(--noAr)'); acaba(v); }
+      else if (d.tipo === 'ep-exp-erro') { removeEventListener('beforeunload', sair); W.prender(false); pt.innerHTML = `<span class="erro" style="display:block">${d.msg === 'cancelado' ? 'Cancelado.' : 'Não deu para gerar: ' + esc(d.msg)}</span>`; J.querySelector('[data-c]').textContent = 'Fechar'; feito = true; removeEventListener('message', ouve); J.querySelector('[data-c]').onclick = () => { fr.src = 'about:blank'; W.fecha(); ok(null); }; }
+    };
+    addEventListener('message', ouve);
+    J.querySelector('[data-c]').onclick = () => { try { fr.contentWindow.postMessage({ tipo: 'ep-exp-cancela' }, location.origin); } catch { } acaba(null); };
+    fr.src = i.abrir + '&exportar=publicacoes&item=' + encodeURIComponent(i.id);
+  });
+}
 function publicarItem(i) {
   if (!i) return; const loc = localDe(i);
   if (loc) return publicar(loc, i.pedido ? i : null);
+  if (podeGerar(i)) { // o Animador gera o vídeo aqui mesmo e já segue para Postar
+    const W = janela(`<h3>${esc(i.titulo)}</h3><p>O vídeo ainda não está neste navegador. O Publicações pode gerar ele agora, abrindo a animação do Animador aqui dentro.</p><div class="pes"><button class="bt" data-arq>Escolher o arquivo</button><button class="bt" data-f>Cancelar</button><button class="bt pri" data-g>Gerar o vídeo aqui</button></div>`);
+    W.J.querySelector('[data-f]').onclick = W.fecha;
+    W.J.querySelector('[data-g]').onclick = async () => { W.fecha(); const v = await gerarVideo(i); if (v && pode('publicacoes.publicar')) publicar(v); };
+    W.J.querySelector('[data-arq]').onclick = () => { W.fecha(); pedeArquivo(i); };
+    return;
+  }
+  pedeArquivo(i);
+}
+function pedeArquivo(i) {
   const W = janela(`<h3>${esc(i.titulo)}</h3><p>O vídeo não está neste navegador${i.arquivo?.nome ? ` (<b>${esc(i.arquivo.nome)}</b>, ${mb(i.arquivo.tam)})` : ''}. Escolha o arquivo${i.abrir ? `, ou <a href="${esc(i.abrir)}" target="_blank" rel="noopener">abra no ${esc(PROGS[i.programa] || 'programa')}</a> e exporte de novo` : ''}${i.pedido ? ', ou siga sem ele para enviar pelo Studio' : ''}.</p><input type="file" accept="video/*" data-a><div class="pes">${i.pedido ? '<button class="bt" data-sem>Seguir sem o arquivo</button>' : ''}<button class="bt" data-f>Cancelar</button></div>`);
   W.J.querySelector('[data-f]').onclick = W.fecha;
   const sem = W.J.querySelector('[data-sem]'); if (sem) sem.onclick = () => { W.fecha(); publicar(null, i); };

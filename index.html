@@ -377,7 +377,7 @@ function pinta() {
   $('#avisos').innerHTML = (erroNuvem ? `<div class="erro">Não consegui buscar a lista: ${esc(erroNuvem)}</div>` : '') + (ATR.length ? `<div class="atrasos"><b data-foco="atrasado" title="Ver todos os atrasados">${ATR.length} atrasado${ATR.length > 1 ? 's' : ''} <small>ver todos ›</small></b>${ATR.slice(0, 6).map(i => `<span class="a">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fa') : ''}<span class="vai" data-mover="${esc(i.id)}" data-tipo="item" data-data="1" title="Mudar a data">${esc(i.titulo)} · ${linhaQuando(i)} · ${esc(canalDe(i)?.nome || 'sem canal')}</span>${faixaDe(i) === 'agendado' ? `<button class="bt sm" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : ''}<button class="bt sm" data-mover="${esc(i.id)}" data-tipo="item" data-data="1">${faixaDe(i) === 'agendado' ? 'Nova data' : 'Já saiu? / Nova data'}</button></span>`).join('')}${ATR.length > 6 ? `<span class="a"><button class="lk" data-foco="atrasado">e mais ${ATR.length - 6} ›</button></span>` : ''}</div>` : '');
   $('#btCanais').hidden = !L.adm;
   ligaArrastar();
-  try { window.EstudioIcones?.aplicar?.(document.body); } catch { }
+  try { window.EstudioIcones?.pinta?.(document.body); } catch { }
 }
 
 // ---------- LISTA DE UMA FAIXA (clicar no título da faixa ou em "atrasados"): por dia, com formato, período e ordem ----------

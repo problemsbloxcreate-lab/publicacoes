@@ -301,7 +301,7 @@ function cardHtml(i) {
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
     if (fx === 'agendado') ac.push(`<button class="lk" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>`);
-    if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O Animador abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
+    if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O ${esc(PROGS[i.programa] || 'programa')} abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
     if (!real && podePub) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
     if (fx === 'concluido' && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
     if (loc) ac.push(`<button class="lk" data-baixa="${esc(loc.id)}">Baixar</button>`);
@@ -587,17 +587,21 @@ async function organizar(v) {
 
 // ---------- PUBLICAR (um vídeo): escolher o jeito, preencher, mandar ----------
 // um item da equipe (não publicado ou pedido): usa o vídeo deste navegador ou pede o arquivo
-// GERAR O VÍDEO AQUI (pedido da dona, 10/11/2026): não publicado de uma animação da nuvem → o Animador abre num quadro desta página
-// (/animador/?nuvem=<id>&exportar=publicacoes&item=<id>), exporta e deixa o vídeo no IndexedDB ligado ao item. Editor e Shorts ainda não.
-const podeGerar = i => !!i?.concluido && /^\/animador\/\?nuvem=[A-Za-z0-9_-]{2,40}$/.test(i.abrir || '');
+// GERAR O VÍDEO AQUI (pedido da dona, 10/11/2026): o programa de origem abre num quadro desta página com &exportar=publicacoes&item=<id>,
+// exporta e deixa o vídeo no IndexedDB ligado ao item (postMessage ep-exp-prog / ep-exp-pronto / ep-exp-erro). Vale para:
+//   Animador: animação da nuvem (/animador/?nuvem=<id>) · Editor: projeto deste computador (/editor/?p=<id>; os brutos são lidos do disco)
+//   Shorts: o vídeo aberto no Shorts (/shorts/…; se faltar as texturas do jogo, a pessoa resolve dentro do quadro e aperta Exportar)
+const GERA = { animador: /^\/animador\/\?nuvem=[A-Za-z0-9_-]{2,40}$/, editor: /^\/editor\/\?p=[A-Za-z0-9_-]{2,60}$/, shorts: /^\/shorts\/[A-Za-z0-9/_?=&.%-]+$/ };
+const podeGerar = i => !!i?.concluido && !!GERA[i.programa]?.test(i.abrir || '') && i.abrir !== '/shorts/';
+const AVISO_GERA = { animador: 'O Animador abre aqui embaixo e exporta a animação inteira, em qualidade máxima, com o som e as legendas da última exportação.', editor: 'O Editor abre aqui embaixo e exporta a edição. Só funciona no computador onde o projeto foi feito; se o navegador pedir, clique em “Reabrir os arquivos” ali dentro.', shorts: 'O Shorts abre aqui embaixo e exporta o vídeo. Se ele pedir as texturas do jogo, resolva ali dentro e clique em “Exportar vídeo”.' };
 function gerarVideo(i) {
   if (!podeGerar(i)) return Promise.resolve(null);
   return new Promise(ok => {
     const W = janela(), J = W.J; W.prender(true);
     const sair = e => { e.preventDefault(); e.returnValue = ''; }; addEventListener('beforeunload', sair);
-    J.innerHTML = `<h3>Gerando o vídeo · ${esc(i.titulo)}</h3><p class="nota">O Animador abre aqui embaixo e exporta a animação inteira, em qualidade máxima, com o som e as legendas da última exportação. Não feche esta aba.</p>
-      <div class="barra"><i></i></div><div class="nota" data-pt>abrindo a animação da nuvem…</div>
-      <iframe title="Animador exportando" style="width:100%;height:44vh;border:0;background:#000;margin-top:10px;display:block"></iframe>
+    J.innerHTML = `<h3>Gerando o vídeo · ${esc(i.titulo)}</h3><p class="nota">${AVISO_GERA[i.programa] || ''} Não feche esta aba.</p>
+      <div class="barra"><i></i></div><div class="nota" data-pt>abrindo o ${esc(PROGS[i.programa] || 'programa')}…</div>
+      <iframe title="${esc(PROGS[i.programa] || 'Programa')} exportando" style="width:100%;height:50vh;border:0;background:#000;margin-top:10px;display:block"></iframe>
       <div class="pes"><button class="bt" data-c>Cancelar</button></div>`;
     const fr = J.querySelector('iframe'), pt = J.querySelector('[data-pt]'), bi = J.querySelector('.barra i');
     let feito = false; const acaba = v => { if (feito) return; feito = true; removeEventListener('message', ouve); removeEventListener('beforeunload', sair); W.prender(false); fr.src = 'about:blank'; W.fecha(); ok(v); };
@@ -609,14 +613,14 @@ function gerarVideo(i) {
     };
     addEventListener('message', ouve);
     J.querySelector('[data-c]').onclick = () => { try { fr.contentWindow.postMessage({ tipo: 'ep-exp-cancela' }, location.origin); } catch { } acaba(null); };
-    fr.src = i.abrir + '&exportar=publicacoes&item=' + encodeURIComponent(i.id);
+    fr.src = i.abrir + (i.abrir.includes('?') ? '&' : '?') + 'exportar=publicacoes&item=' + encodeURIComponent(i.id);
   });
 }
 function publicarItem(i) {
   if (!i) return; const loc = localDe(i);
   if (loc) return publicar(loc, i.pedido ? i : null);
   if (podeGerar(i)) { // o Animador gera o vídeo aqui mesmo e já segue para Postar
-    const W = janela(`<h3>${esc(i.titulo)}</h3><p>O vídeo ainda não está neste navegador. O Publicações pode gerar ele agora, abrindo a animação do Animador aqui dentro.</p><div class="pes"><button class="bt" data-arq>Escolher o arquivo</button><button class="bt" data-f>Cancelar</button><button class="bt pri" data-g>Gerar o vídeo aqui</button></div>`);
+    const W = janela(`<h3>${esc(i.titulo)}</h3><p>O vídeo ainda não está neste navegador. O Publicações pode gerar ele agora, abrindo o ${esc(PROGS[i.programa] || 'programa')} aqui dentro.</p><div class="pes"><button class="bt" data-arq>Escolher o arquivo</button><button class="bt" data-f>Cancelar</button><button class="bt pri" data-g>Gerar o vídeo aqui</button></div>`);
     W.J.querySelector('[data-f]').onclick = W.fecha;
     W.J.querySelector('[data-g]').onclick = async () => { W.fecha(); const v = await gerarVideo(i); if (v && pode('publicacoes.publicar')) publicar(v); };
     W.J.querySelector('[data-arq]').onclick = () => { W.fecha(); pedeArquivo(i); };

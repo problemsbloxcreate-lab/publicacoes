@@ -164,6 +164,19 @@ textarea{height:auto;min-height:90px;padding:6px 8px;resize:vertical}
 .escolha button .q{width:40px;height:40px;flex:none;background:var(--c,var(--ac))}
 /* aviso que some sozinho */
 .toast{position:fixed;right:20px;bottom:20px;z-index:40;background:#2b2b2b;border-left:4px solid var(--ac);padding:12px 16px;max-width:min(420px,calc(100% - 40px));animation:entra .3s var(--entra)}
+.jan.postar{padding:18px clamp(16px,5vw,80px)}.jan.postar>*{max-width:1180px}
+.pst-cab{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:12px}.pst-cab h3{margin:0}
+.pst{display:grid;grid-template-columns:minmax(240px,380px) minmax(0,1fr);gap:32px;align-items:start}
+.pst-v video{width:100%;max-height:58vh;background:#000;display:block}
+.pst-v .sem-v{aspect-ratio:16/9;background:#161616;display:grid;place-items:center;text-align:center;color:var(--mu);padding:16px}
+.pst-info{display:flex;gap:6px;align-items:center;color:var(--mu);font-size:12.5px;margin-top:8px}
+.pst-bts{display:flex;flex-direction:column;gap:6px;margin-top:12px}.pst-bts a.bt{color:#fff;word-break:normal}.pst-bts>.bt{height:38px;justify-content:center}
+.pst-cp{display:flex;gap:6px;flex-wrap:wrap}.pst-cp .bt{flex:1;justify-content:center}
+.pst-f input[type=text],.pst-f select,.pst-f input[type=datetime-local],.pst-f textarea{width:100%}
+.pst-f textarea{min-height:70px}
+.pst-f .dupla{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:end}
+.pst-f .chk{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:13px}.pst-f .chk input{width:18px;height:18px;accent-color:var(--ac)}
+@media (max-width:760px){.pst{grid-template-columns:1fr}.pst-f .dupla{grid-template-columns:1fr}}
 @media (max-width:700px){.faixa{flex-basis:84vw}.cola .l{flex-wrap:wrap}.cola .l span{width:100%}}
 </style>
 </head>
@@ -696,102 +709,98 @@ function pedeArquivo(i) {
   const sem = W.J.querySelector('[data-sem]'); if (sem) sem.onclick = () => { W.fecha(); publicar(null, i); };
   W.J.querySelector('[data-a]').onchange = async e => { const f = e.target.files[0]; if (!f) return; const v = { id: novoId('v'), blob: f, nome: f.name, titulo: i.titulo, descricao: i.descricao || '', programa: i.programa, formato: i.formato, em: Date.now(), ...(i.pedido ? { pedido: i.id } : { concluido: i.id }) }; try { await YT.fila.poe(v); } catch { } W.fecha(); publicar(v, i.pedido ? i : null); };
 }
-/* v = vídeo deste navegador { id, blob, nome, titulo, descricao, programa, formato, concluido? } ; ped = pedido da fila (opcional) ;
-   op = { via, modo } para já abrir escolhido (quando veio de um arrastar) */
+/* POSTAR (à mão, sem ligação com o YouTube; refeito a pedido da dona em 10/11/2026): uma janela em duas colunas.
+   Esquerda: o vídeo, "Baixar o vídeo", "Abrir o YouTube Studio" (envio no canal escolhido) e copiar o título/descrição.
+   Direita: título, canal, formato, situação, quando sai (data e hora) e o link do YouTube (quando já foi postado).
+   "Ainda não postado" guarda em Não publicados (ou Na fila, se outra pessoa da equipe vai postar), com a data planejada;
+   Agendado / Não listado / Publicado pedem o link e viram o vídeo da lista (substitui o não publicado / pedido).
+   v = vídeo deste navegador { id, blob, nome, titulo, descricao, programa, formato, concluido?, abrir? } ; ped = pedido da fila ;
+   op = { via: 'fila', modo } quando veio de um arrastar. */
 function publicar(v, ped, op = {}) {
   if (!v && !ped) return;
-  const W = janela(), J = W.J, url = v?.blob ? URL.createObjectURL(v.blob) : null; W.aoFechar(() => url && URL.revokeObjectURL(url));
-  const podeAg = pode('publicacoes.agendar');
-  const conc = v?.concluido ? L.itens.find(x => x.id === v.concluido) : null, ref = ped || conc;
-  const minAg = () => { const d = new Date(Date.now() + 15 * 60e3); d.setSeconds(0, 0); return emLocal(+d); };
-  const st = { via: op.via === 'fila' && v && !ped ? 'fila' : 'studio', titulo: String(ref?.titulo || v?.titulo || '').replace(/[<>]/g, '').slice(0, 100), desc: String(ped?.descricao ?? v?.descricao ?? ''), kids: ped?.criancas ?? null,
-    modo: op.modo && (op.modo !== 'agendado' || podeAg) ? op.modo : ped?.modo || (ref?.publicaEm && podeAg ? 'agendado' : 'naoListado'), em: ref?.publicaEm && ref.publicaEm > Date.now() ? emLocal(ref.publicaEm) : '', canalId: canalDe(ref)?.id || CANAL_DO_PROG[v?.programa]?.id || '', outro: '' };
-  const formato = ref?.formato || v?.formato || formatoLocal(v || ped);
-  let erro = '';
-  const canalEsc = () => st.canalId === '_outro' ? (canalDoTexto(st.outro) ? { id: canalDoTexto(st.outro), nome: 'Outro canal' } : null) : canalPorId(st.canalId) || (ref?.canal?.id === st.canalId && st.canalId ? ref.canal : null);
+  const W = janela(), J = W.J, url = v?.blob ? URL.createObjectURL(v.blob) : null; W.aoFechar(() => url && URL.revokeObjectURL(url)); J.classList.add('postar');
+  const conc = v?.concluido ? L.itens.find(x => x.id === v.concluido) : null, ref = ped || conc, podeAg = pode('publicacoes.agendar');
+  const st = { titulo: String(ref?.titulo || v?.titulo || v?.nome || '').replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[<>]/g, '').slice(0, 100), desc: String(ped?.descricao ?? v?.descricao ?? ''),
+    canal: canalDe(ref)?.id || CANAL_DO_PROG[v?.programa || ped?.programa]?.id || '', fmt: ref?.formato || v?.formato || formatoLocal(v || ped),
+    sit: { agendado: 'agendado', naoListado: 'naoListado', agora: 'noAr' }[op.modo] || 'nao', em: ref?.publicaEm ? emLocal(ref.publicaEm) : '', link: '', fila: !!ped || (op.via === 'fila' && !!v?.blob), erro: '' };
+  if (st.sit === 'agendado' && !podeAg) st.sit = 'nao';
+  const SIT = [['nao', 'Ainda não postado'], ...(podeAg ? [['agendado', 'Agendado']] : []), ['naoListado', 'Não listado'], ['noAr', 'Publicado']];
+  const canalEsc = () => canalPorId(st.canal) || (canalDe(ref)?.id === st.canal ? canalDe(ref) : null);
   const form = () => {
-    const V = [['studio', 'Eu mesmo posto no YouTube', 'Você envia pelo YouTube Studio seguindo a colinha e cola o link no fim.', false], ...(!ped && v ? [['fila', 'Deixar na fila da equipe', 'Outra pessoa posta depois (o vídeo fica neste navegador).', false]] : [])];
-    J.innerHTML = `<h3>${ped ? 'Postar pedido da fila' : 'Postar no YouTube'}</h3>${url ? `<video src="${url}" controls preload="metadata"></video>` : `<div class="nota">O vídeo não está neste navegador${ped?.arquivo?.nome ? ` (${esc(ped.arquivo.nome)}, ${mb(ped.arquivo.tam)})` : ''}: peça o arquivo para quem fez o pedido.</div>`}
-      <div class="nota">${formato === 'short' ? 'Short (vídeo em pé)' : 'Vídeo longo'}</div>
-      <label class="r">Quem posta</label><div class="vias">${V.map(([k, n, d, off]) => `<button type="button" data-via="${k}" class="${st.via === k ? 'on' : ''}"${off ? ' disabled title="Ainda não ligado (falta a parte do Google Cloud)"' : ''}><b>${n}</b><small>${d}${off ? ' (ainda não ligado)' : ''}</small></button>`).join('')}</div>
-      <label class="r">Canal</label>${`<select data-canal><option value="">${st.via === 'fila' ? 'Qualquer canal (o dono escolhe)' : 'Escolha o canal…'}</option>${opcCanais(st.canalId, ref?.canal)}<option value="_outro"${st.canalId === '_outro' ? ' selected' : ''}>Outro canal (colar o link ou ID)…</option></select>${st.canalId === '_outro' ? `<input type="text" data-outro placeholder="https://www.youtube.com/channel/UC… ou UC…" value="${esc(st.outro)}" style="margin-top:6px">` : ''}`}
-      <label class="r">Título <span style="float:right" data-ct></span></label><input type="text" maxlength="100" data-tit value="${esc(st.titulo)}">
-      <label class="r">Descrição</label><textarea maxlength="5000" data-desc>${esc(st.desc)}</textarea>
-      <label class="r">É feito para crianças? (o YouTube exige essa resposta)</label>
-      <div class="opc"><label><input type="radio" name="kids" value="nao"${st.kids === false ? ' checked' : ''}> Não</label><label><input type="radio" name="kids" value="sim"${st.kids === true ? ' checked' : ''}> Sim, é para crianças</label></div>
-      <label class="r">Como sai</label>
-      <div class="seg">${[['naoListado', 'Não listado'], ['agora', 'Publicar agora'], ...(podeAg ? [['agendado', 'Agendar']] : [])].map(([k, n]) => `<button type="button" data-modo="${k}" class="${st.modo === k ? 'on' : ''}">${n}</button>`).join('')}</div>
-      ${st.modo === 'agendado' ? `<label class="r">Sai em (hora deste computador)</label><input type="datetime-local" data-em min="${minAg()}" value="${esc(st.em || minAg())}"><div class="nota">Marque a mesma hora no Studio. Entra um lembrete no seu calendário do Estúdio; depois da hora, confirme aqui que saiu.</div>` : ''}
-      ${erro ? `<div class="erro">${esc(erro)}</div>` : ''}
-      <div class="pes"><button class="bt" data-f>Cancelar</button><button class="bt pri" data-ok>${st.via === 'fila' ? 'Deixar na fila' : 'Continuar no Studio'}</button></div>`;
+    const c = canalEsc(), upl = c ? `https://studio.youtube.com/channel/${encodeURIComponent(c.id)}/videos/upload?d=ud` : 'https://studio.youtube.com/';
+    const rotData = st.sit === 'nao' ? 'planejado para (aparece na agenda)' : st.sit === 'agendado' ? 'sai em' : st.sit === 'noAr' ? 'saiu em (opcional)' : '';
+    J.innerHTML = `<div class="pst-cab"><h3>Postar</h3><span class="nota">Você posta no YouTube Studio; aqui fica a organização da equipe.</span></div>
+      <div class="pst">
+        <div class="pst-v">
+          ${url ? `<video class="${st.fmt}" src="${url}" controls preload="metadata"></video>` : `<div class="sem-v">O vídeo não está neste navegador${ped?.arquivo?.nome ? `<br><small>${esc(ped.arquivo.nome)} · ${mb(ped.arquivo.tam)}</small>` : ''}<br><small>Peça o arquivo para quem fez o pedido.</small></div>`}
+          <div class="pst-info">${progIc(v?.programa || ped?.programa)}<span>${esc(PROGS[v?.programa || ped?.programa] || 'Vídeo')}</span>${v?.blob ? `<span>· ${mb(v.blob.size)}</span>` : ''}</div>
+          <div class="pst-bts">
+            ${v?.blob ? '<button class="bt pri" data-baixa1>Baixar o vídeo</button>' : ''}
+            <a class="bt" href="${upl}" target="_blank" rel="noopener">Abrir o YouTube Studio${c ? ` · ${esc(c.nome)}` : ''}</a>
+            <div class="pst-cp"><button class="bt sm" data-cpt>Copiar o título</button>${st.desc.trim() ? '<button class="bt sm" data-cpd>Copiar a descrição</button>' : ''}</div>
+          </div>
+        </div>
+        <div class="pst-f">
+          <label class="r">título <span style="float:right" data-ct></span></label><input type="text" maxlength="100" data-tit value="${esc(st.titulo)}">
+          <div class="dupla"><div><label class="r">canal</label><select data-canal><option value="">Escolha o canal…</option>${opcCanais(st.canal, canalDe(ref))}</select></div>
+            <div><label class="r">formato</label><div class="seg">${[['short', 'Short'], ['longo', 'Vídeo longo']].map(([k, n]) => `<button data-fm="${k}" class="${st.fmt === k ? 'on' : ''}">${n}</button>`).join('')}</div></div></div>
+          <label class="r">situação</label><div class="seg">${SIT.map(([k, n]) => `<button data-st="${k}" class="${st.sit === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+          ${rotData ? `<label class="r">${rotData}</label><div class="dupla"><input type="datetime-local" data-em value="${esc(st.em)}">${st.sit === 'nao' ? '<button class="bt sm" data-semdata>Sem data</button>' : '<span></span>'}</div>` : ''}
+          ${st.sit === 'nao' ? (v?.blob && !ped ? `<label class="chk"><input type="checkbox" data-fila${st.fila ? ' checked' : ''}> Outra pessoa da equipe vai postar (vai para “Na fila”; o vídeo fica neste navegador)</label>` : ped ? '<div class="nota">Está na fila para alguém da equipe postar.</div>' : '')
+            : `<label class="r">link do vídeo no YouTube</label><input type="text" data-link placeholder="https://youtu.be/… ou youtube.com/shorts/…" value="${esc(st.link)}"><div class="nota">Depois de postar no Studio, cole aqui o link que ele mostra.</div>`}
+          <label class="r">descrição (opcional, para copiar no Studio)</label><textarea maxlength="5000" data-desc>${esc(st.desc)}</textarea>
+          ${st.erro ? `<div class="erro">${esc(st.erro)}</div>` : ''}
+          <div class="pes"><button class="bt" data-f>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>
+        </div>
+      </div>`;
     const q = s => J.querySelector(s), tit = q('[data-tit]'), ct = () => { q('[data-ct]').textContent = tit.value.length + '/100'; }; ct();
     tit.oninput = () => { st.titulo = tit.value; ct(); }; q('[data-desc]').oninput = e => { st.desc = e.target.value; };
-    J.querySelectorAll('[name=kids]').forEach(r => r.onchange = () => { st.kids = r.value === 'sim'; });
-    J.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { st.modo = b.dataset.modo; erro = ''; form(); });
-    J.querySelectorAll('[data-via]').forEach(b => b.onclick = () => { st.via = b.dataset.via; erro = ''; form(); });
-    const em = q('[data-em]'); if (em) { st.em = em.value; em.onchange = () => { st.em = em.value; }; }
-    const cs = q('[data-canal]'); if (cs) cs.onchange = () => { st.canalId = cs.value; form(); };
-    const ou = q('[data-outro]'); if (ou) ou.oninput = () => { st.outro = ou.value; };
-    q('[data-f]').onclick = W.fecha; q('[data-ok]').onclick = seguir;
+    q('[data-canal]').onchange = e => { st.canal = e.target.value; form(); };
+    J.querySelectorAll('[data-fm]').forEach(x => x.onclick = () => { st.fmt = x.dataset.fm; form(); });
+    J.querySelectorAll('[data-st]').forEach(x => x.onclick = () => { st.sit = x.dataset.st; st.erro = ''; form(); });
+    const em = q('[data-em]'); if (em) em.onchange = () => { st.em = em.value; };
+    const sd = q('[data-semdata]'); if (sd) sd.onclick = () => { st.em = ''; form(); };
+    const fl = q('[data-fila]'); if (fl) fl.onchange = () => { st.fila = fl.checked; };
+    const lk = q('[data-link]'); if (lk) lk.oninput = () => { st.link = lk.value; if (/\/shorts\//.test(st.link) && st.fmt !== 'short') { st.fmt = 'short'; form(); q('[data-link]').focus(); } };
+    const bx = q('[data-baixa1]'); if (bx) bx.onclick = () => baixar(v.blob, (st.titulo || v.nome || 'video').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.' + ((v.nome || '').split('.').pop() || 'mp4'));
+    q('[data-cpt]').onclick = e => navigator.clipboard?.writeText(st.titulo).then(() => { e.target.textContent = 'Copiado'; setTimeout(() => { e.target.textContent = 'Copiar o título'; }, 1200); });
+    const cd = q('[data-cpd]'); if (cd) cd.onclick = () => navigator.clipboard?.writeText(st.desc).then(() => { cd.textContent = 'Copiado'; setTimeout(() => { cd.textContent = 'Copiar a descrição'; }, 1200); });
+    q('[data-f]').onclick = W.fecha; q('[data-ok]').onclick = salvar;
   };
-  const confere = () => {
+  async function salvar() {
     st.titulo = st.titulo.replace(/[<>]/g, '').trim();
-    if (!st.titulo) return 'Escreva um título.';
-    if (st.kids === null) return 'Responda se o vídeo é feito para crianças.';
-    if (st.modo === 'agendado' && !(new Date(st.em).getTime() > Date.now() + 5 * 60e3)) return 'Escolha uma hora pelo menos 5 minutos no futuro.';
-    if (st.via === 'studio' && !canalEsc()) return st.canalId === '_outro' ? 'Cole o link do canal (youtube.com/channel/UC…) ou o ID que começa com UC.' : 'Escolha o canal.';
-    return '';
-  };
-  const base = () => ({ titulo: st.titulo, descricao: st.desc, criancas: st.kids, modo: st.modo, publicaEm: st.modo === 'agendado' ? new Date(st.em).getTime() : null, programa: ref?.programa || v?.programa || 'publicacoes', formato });
-  async function seguir() {
-    erro = confere(); if (erro) return form();
-    if (st.via === 'fila') return deixarNaFila();
-    return studio();
-  }
-  // --- 3. deixar na fila da equipe (só os dados vão para a nuvem) ---
-  async function deixarNaFila() {
-    const c = canalEsc(), id = novoId('p'), b = base();
-    J.innerHTML = '<h3>Deixando na fila…</h3>';
+    const c = canalEsc(), canal = c ? { id: c.id, nome: c.nome } : { id: '', nome: '' }, t = st.em ? new Date(st.em).getTime() : null, prog = ref?.programa || v?.programa || 'publicacoes';
+    const erro = m => { st.erro = m; form(); };
+    if (!st.titulo) return erro('Escreva um título.');
+    const botao = J.querySelector('[data-ok]'); botao.disabled = true; botao.textContent = 'Salvando…';
     try {
-      await salvaItem({ id, pedido: true, ...b, canal: c ? { id: c.id, nome: c.nome } : { id: '', nome: '' }, privacidade: privDe(b.modo), enviadoEm: Date.now(), arquivo: { nome: v.nome, tam: v.blob?.size } }, v.concluido);
-      const { concluido, ...resto } = v; await YT.fila.poe({ ...resto, titulo: st.titulo, descricao: st.desc, formato, pedido: id }); carregaLocais();
-      J.innerHTML = `<h3>Na fila da equipe</h3><div class="okcx"><b>${esc(st.titulo)}</b> ficou na fila para alguém da equipe postar.</div><p class="nota">O vídeo continua neste navegador. Se quem for publicar estiver em OUTRO computador, mande o arquivo para essa pessoa (botão "Baixar" no cartão).</p><div class="pes"><button class="bt pri" data-f>Fechar</button></div>`;
-    } catch (er) { erro = 'Não consegui pôr na fila: ' + er.message; return form(); }
-    J.querySelector('[data-f]').onclick = W.fecha;
-  }
-  // --- 2. pelo YouTube Studio (editor): colinha + baixar + abrir o Studio + colar o link ---
-  function studio() {
-    const c = canalEsc(), b = base(), upl = `https://studio.youtube.com/channel/${encodeURIComponent(c.id)}/videos/upload?d=ud`;
-    const vis = b.modo === 'agendado' ? `Programar: ${new Date(b.publicaEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : b.modo === 'agora' ? 'Público' : 'Não listado';
-    const linha = (n, val, cp) => `<div class="l"><span>${n}</span><b>${esc(val) || '<i style="color:var(--mu2)">(vazio)</i>'}</b>${cp && val ? `<button class="bt sm" data-cp="${esc(val)}">Copiar</button>` : ''}</div>`;
-    J.innerHTML = `<h3>Enviar pelo YouTube Studio · ${esc(c.nome)}</h3>
-      <div class="passo"><i>1</i><span>${v?.blob ? 'Baixe o vídeo (se ainda não estiver no computador):' : 'Tenha o arquivo do vídeo no computador.'}</span>${v?.blob ? '<button class="bt sm" data-baixa1>Baixar o vídeo</button>' : ''}</div>
-      <div class="passo"><i>2</i><span>Abra o envio do Studio no canal <b>${esc(c.nome)}</b> e arraste o arquivo:</span><a class="bt sm pri" href="${upl}" target="_blank" rel="noopener">Abrir o Studio</a></div>
-      <div class="passo"><i>3</i><span>Preencha no Studio igual a esta colinha:</span></div>
-      <div class="cola">${linha('Título', st.titulo, true)}${linha('Descrição', st.desc, true)}${linha('Público-alvo', st.kids ? 'Sim, é conteúdo para crianças' : 'Não, não é conteúdo para crianças')}${linha('Visibilidade', vis)}</div>
-      <div class="passo"><i>4</i><span>No fim, o Studio mostra o link do vídeo. Cole aqui:</span></div>
-      <input type="text" data-link placeholder="https://youtu.be/…" style="margin-top:6px">
-      ${erro ? `<div class="erro">${esc(erro)}</div>` : ''}
-      <div class="nota">Se o Studio abrir em outro canal, troque o canal no Studio (foto no canto de cima) antes de enviar.</div>
-      <div class="pes"><button class="bt" data-volta>Voltar</button><button class="bt pri" data-salva>Pôr na lista</button></div>`;
-    const bx = J.querySelector('[data-baixa1]'); if (bx) bx.onclick = () => baixar(v.blob, v.nome);
-    J.querySelector('[data-volta]').onclick = () => { erro = ''; form(); };
-    J.querySelector('[data-salva]').onclick = async () => {
-      const id = idDoLink(J.querySelector('[data-link]').value); if (!id) { erro = 'Cole o link do vídeo (youtu.be/… ou youtube.com/watch?v=…).'; return studio(); }
-      const item = { id, ...b, canal: { id: c.id, nome: c.nome }, privacidade: privDe(b.modo), enviadoEm: Date.now(), via: 'studio', confirmadoEm: b.modo === 'agora' ? Date.now() : null };
-      delete item.descricao; delete item.criancas;
-      try { await salvaItem(item, ped?.id || v?.concluido); } catch (er) { erro = 'Não consegui pôr na lista: ' + er.message; return studio(); }
-      if (b.modo === 'agendado') poeLembrete(item);
-      if (v?.id) { try { await YT.fila.tira(v.id); } catch { } } carregaLocais();
-      fim(item);
-    };
-  }
-  function fim(item) {
-    const link = 'https://youtu.be/' + item.id;
-    J.innerHTML = `<h3>Pronto</h3><div class="okcx"><b>${item.modo === 'agendado' ? `Agendado para ${dataH(item.publicaEm)}` : item.modo === 'agora' ? 'No ar' : 'Não listado'} em ${esc(item.canal.nome)}.</b><br><a href="${link}" target="_blank" rel="noopener">${link}</a></div>
-      <p class="nota">Entrou na lista da equipe com a situação que você marcou.${item.modo === 'agendado' ? ' Quando passar a hora, confirme aqui que saiu.' : ''} Miniatura, legendas e outros detalhes: <a href="https://studio.youtube.com/video/${item.id}/edit" target="_blank" rel="noopener">abrir no YouTube Studio</a>.${item.modo === 'agendado' ? ' O lembrete entrou no seu calendário do Estúdio.' : ''}</p>
-      <div class="pes"><button class="bt" data-cp="${link}">Copiar o link</button><button class="bt pri" data-f>Fechar</button></div>`;
-    J.querySelector('[data-f]').onclick = W.fecha;
+      if (st.sit === 'nao') {
+        if (ped) await salvaItem({ ...paraNuvem(ped), titulo: st.titulo, descricao: st.desc, canal, formato: st.fmt, publicaEm: t });
+        else if (st.fila && v?.blob) {
+          const id = novoId('p');
+          await salvaItem({ id, pedido: true, titulo: st.titulo, descricao: st.desc, criancas: null, modo: t ? 'agendado' : 'naoListado', privacidade: t ? 'private' : 'unlisted', publicaEm: t, canal, formato: st.fmt, programa: prog, enviadoEm: Date.now(), arquivo: { nome: v.nome, tam: v.blob.size } }, v.concluido);
+          const { concluido, concluir, ...resto } = v; await YT.fila.poe({ ...resto, titulo: st.titulo, descricao: st.desc, formato: st.fmt, pedido: id });
+        } else if (conc) await salvaItem({ ...paraNuvem(conc), titulo: st.titulo, canal, formato: st.fmt, publicaEm: t });
+        else { // vídeo só deste navegador: vira um Não publicado da equipe
+          const m = await medir(v.blob), id = novoId('c');
+          await salvaItem({ id, concluido: true, titulo: st.titulo, programa: prog, abrir: v.abrir || '', thumb: m.thumb, formato: st.fmt, canal, publicaEm: t, enviadoEm: Date.now(), arquivo: { nome: v.nome, tam: v.blob.size } });
+          const { concluir, ...resto } = v; await YT.fila.poe({ ...resto, titulo: st.titulo, formato: st.fmt, concluido: id });
+        }
+        toast(`Salvo em ${st.fila || ped ? 'Na fila' : 'Não publicados'}${t ? ' · planejado para ' + dataH(t) : ''}.`);
+      } else {
+        const id = idDoLink(st.link);
+        if (!id) return erro('Cole o link do vídeo no YouTube (youtu.be/… ou youtube.com/…).');
+        if (!c) return erro('Escolha o canal.');
+        if (st.sit === 'agendado' && !t) return erro('Escolha quando sai.');
+        const item = { id, titulo: st.titulo, canal, formato: st.fmt, modo: { agendado: 'agendado', naoListado: 'naoListado', noAr: 'agora' }[st.sit], privacidade: { agendado: 'private', naoListado: 'unlisted', noAr: 'public' }[st.sit],
+          publicaEm: st.sit === 'naoListado' ? null : t, enviadoEm: Date.now(), programa: prog, via: 'studio', confirmadoEm: st.sit === 'noAr' ? Date.now() : null };
+        await salvaItem(item, ped?.id || v?.concluido);
+        if (st.sit === 'agendado') poeLembrete(item);
+        if (v?.id) { try { await YT.fila.tira(v.id); } catch { } }
+        toast(`Foi para ${NOMEF[st.sit]}${st.sit === 'agendado' ? ' · sai ' + dataH(t) : ''}.`);
+      }
+    } catch (er) { return erro('Não consegui salvar: ' + er.message); }
+    carregaLocais(); W.fecha();
   }
   form();
 }

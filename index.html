@@ -7,6 +7,8 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icone-180.png">
 <script src="/estudio-login.js"></script>
 <script src="/estudio-youtube.js"></script>
+<script>/* círculo roxo da NUVEM ao lado do computador, igual no Animador: a lista da equipe fica na nuvem (10/11/2026) */
+window.ESTUDIO_CONTA = { nuvem: true, token: () => window.EstudioLogin?.token?.(), aoMudarNuvem: () => { try { buscar(true); } catch { } } };</script>
 <style>
 /* VISUAL METRO (Windows 8), pedido da dona em 10/11/2026: blocos planos de cor sólida, letras finas e grandes, NADA arredondado,
    sem sombra, sem degradê, sem desfoque. Painéis entram deslizando pela direita, avisos são faixas na largura toda. */
@@ -20,7 +22,7 @@ a{color:inherit}
 /* cabeçalho */
 .top{display:flex;align-items:flex-end;gap:14px;padding:22px clamp(16px,4vw,56px) 4px;flex-wrap:wrap}
 .top h1{margin:0;font:300 clamp(30px,4vw,46px)/1 var(--leve);letter-spacing:-.5px;display:flex;align-items:center;gap:14px}
-.top h1 .ic{width:46px;height:46px;background:var(--ac);display:grid;place-items:center;flex:none}
+.top h1 .ic{width:46px;height:46px;background:#2b0606;border:2px solid #ff3b3b;color:#ff3b3b;display:grid;place-items:center;flex:none}.top h1 .ic b{font:700 22px/1 "Segoe UI",system-ui;letter-spacing:-.5px}.top h1 .ic:has(svg){background:none;border:0}.top h1 .ic svg{width:46px;height:46px;display:block}
 .top h1 small{display:block;font:400 13px/1.3 "Segoe UI",system-ui,sans-serif;color:var(--mu);letter-spacing:0;margin-top:4px}
 .sp{flex:1}
 .acoes{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-bottom:4px}
@@ -47,7 +49,7 @@ select option{color:#000}
 .hoje{margin:14px clamp(16px,4vw,56px) 0;display:flex;gap:6px;flex-wrap:wrap;align-items:stretch}
 .hoje .rot{background:var(--ac);padding:8px 14px;display:flex;flex-direction:column;justify-content:center;min-width:120px}
 .hoje .rot b{font:300 24px/1 var(--leve)}.hoje .rot small{font-size:12px;opacity:.9;margin-top:3px}
-.hoje .h{background:var(--p);padding:8px 12px;display:flex;flex-direction:column;justify-content:center;max-width:280px;cursor:pointer;border-left:4px solid var(--agendado)}
+.hoje .h{background:var(--p);padding:8px 12px;display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-content:center;max-width:280px;cursor:pointer;border-left:4px solid var(--agendado)}
 .hoje .h:hover{background:var(--p2)}.hoje .h b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hoje .h small{color:var(--mu);font-size:12px}
 .hoje .vz{color:var(--mu);padding:8px 2px;align-self:center}
 /* faixas (colunas) que rolam para o lado, como no Windows 8 */
@@ -72,7 +74,12 @@ select option{color:#000}
 .card .ln{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center;color:var(--mu);font-size:12px}
 .card .quando{color:#fff;font-size:12.5px}
 .card .ac{display:flex;gap:4px 12px;flex-wrap:wrap;padding:0 10px 8px}
-.canal{display:inline-flex;align-items:center;gap:5px;min-width:0}.canal i{width:10px;height:10px;flex:none;background:var(--cc,#777)}
+.canal{display:inline-flex;align-items:center;gap:6px;min-width:0}.canal .fc{width:18px;height:18px;flex:none;object-fit:cover;outline:2px solid var(--cc,#777);outline-offset:-1px}
+.selo-canal{position:absolute;right:6px;bottom:6px;width:30px;height:30px;object-fit:cover;outline:2px solid #000}
+.hoje .h .fh{width:32px;height:32px;object-fit:cover;grid-row:span 2;align-self:center}.hoje .h>b,.hoje .h>small{grid-column:2}
+.ev .fe{width:14px;height:14px;object-fit:cover;vertical-align:-3px;margin-right:4px}
+.legenda .fl{width:16px;height:16px;object-fit:cover}.atrasos .fa{width:24px;height:24px;object-fit:cover;flex:none}
+.escolha button img.q{object-fit:cover}
 .semcanal{color:#ffb38a;font-weight:600}
 .lk.forte{color:#fff;font-weight:600;text-decoration:underline}
 .selo-atr{justify-self:start;background:var(--atr);color:#fff;font-size:11px;font-weight:600;padding:1px 7px;text-transform:uppercase;letter-spacing:.5px}
@@ -96,7 +103,7 @@ select option{color:#000}
 .ev:hover{background:rgba(255,255,255,.18)}.ev[draggable=true]{cursor:grab}
 .ev em{font-style:normal;color:var(--mu)}.ev.st-noAr{opacity:.7}.ev.st-concluido em,.ev.st-pedido em{color:#ffb38a}
 .legenda{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--mu);font-size:12px;margin-top:12px}
-.legenda span{display:inline-flex;align-items:center;gap:5px}.legenda i{width:12px;height:12px;background:var(--cc)}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
 @media (max-width:760px){.mes{grid-template-columns:1fr}.mes .sem,.dia.fora{display:none}.dia{min-height:0}}
 .rod{color:var(--mu2);font-size:12px;padding:0 clamp(16px,4vw,56px) 40px}
 .erro{background:#a20025;padding:8px 12px;margin:10px 0}
@@ -143,7 +150,7 @@ textarea{height:auto;min-height:90px;padding:6px 8px;resize:vertical}
 </head>
 <body>
 <header class="top">
-  <h1><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14"/><path d="M10 9.3v5.4l4.6-2.7z" fill="#fff"/></svg></span><span>publicações<small>organizar os vídeos da equipe no YouTube</small></span></h1>
+  <h1><span class="ic" data-estudio-icone="x-publicacoes" aria-hidden="true"><b>Pu</b></span><span>publicações<small>organizar os vídeos da equipe no YouTube</small></span></h1>
   <div class="sp"></div>
   <div class="acoes">
     <button class="bt pri" id="btNovo" title="Pôr um vídeo na organização da equipe">+ Adicionar</button>
@@ -198,13 +205,16 @@ const emLocal = t => new Date(t - new Date(t).getTimezoneOffset() * 60e3).toISOS
 let toastT; const toast = (txt, cor) => { document.querySelector('.toast')?.remove(); const d = document.createElement('div'); d.className = 'toast'; if (cor) d.style.borderColor = cor; d.textContent = txt; document.body.appendChild(d); clearTimeout(toastT); toastT = setTimeout(() => d.remove(), 5000); };
 
 // ---------- canais: os dois fixos da equipe + os que um ADM cadastrou ----------
-const TURMA = { id: 'UC3V4c447QO0zEyTJlsqqSWQ', nome: 'Turma do Problems', arroba: '@turmadoproblemsoficial' };
-const PROBLEMS = { id: 'UCrcBZDofBltcgGxphNia2tw', nome: 'Problems', arroba: '@problemsyt' };
+const TURMA = { id: 'UC3V4c447QO0zEyTJlsqqSWQ', nome: 'Turma do Problems', arroba: '@turmadoproblemsoficial', foto: 'https://yt3.googleusercontent.com/_6RPpNFdU-vvfq6BCqreyL8SJV_vTcUlaKmhH6rb_xg-GUmIPulgJrOmvg1JFWmg7SNpbnXV=s88-c-k-c0x00ffffff-no-rj' };
+const PROBLEMS = { id: 'UCrcBZDofBltcgGxphNia2tw', nome: 'Problems', arroba: '@problemsyt', foto: 'https://yt3.googleusercontent.com/AuhtqoWAKXrVq9lQchbDSmXjDk_0RMvr6u1FRbrxQ6ic8aYFf3wWLPDO411u6jBFrxOS93drVw=s88-c-k-c0x00ffffff-no-rj' };
+const RAIZ = { id: 'UC8cP4kV1GIbxRH-mlilSniQ', nome: 'Problems Raiz', arroba: '@ProbIemsRaiz', foto: 'https://yt3.googleusercontent.com/NA1N99kaC6pQY60HZ_lWSk1tF_E59Am0YrIQIGtkOB8Bah7bB0d1O27dpXlSEQyqWX9jAjz6Z2c=s88-c-k-c0x00ffffff-no-rj' }; // sem padrão: entra quando alguém escolhe
 const CANAL_DO_PROG = { animador: TURMA, editor: PROBLEMS }; // Shorts: sem padrão, a pessoa escolhe
 const CORES = ['#a200ff', '#1ba1e2', '#00aba9', '#d80073', '#8cbf26', '#f0a30a', '#6a00ff', '#a0522d'];
-const canaisTodos = () => { const m = new Map(); [TURMA, PROBLEMS, ...(L.canais || [])].forEach(c => c?.id && !m.has(c.id) && m.set(c.id, { id: c.id, nome: c.nome })); return [...m.values()]; };
+const canaisTodos = () => { const m = new Map(); [TURMA, PROBLEMS, RAIZ, ...(L.canais || [])].forEach(c => c?.id && !m.has(c.id) && m.set(c.id, { id: c.id, nome: c.nome, arroba: c.arroba || '', foto: c.foto || '' })); return [...m.values()]; };
 const corCanal = id => { const k = canaisTodos().findIndex(c => c.id === id); return k < 0 ? '#777' : CORES[k % CORES.length]; };
-const canalHtml = c => c?.id ? `<span class="canal" style="--cc:${corCanal(c.id)}"><i></i>${esc(c.nome || 'canal')}</span>` : '<span class="semcanal">escolha o canal</span>';
+const fotoCanal = id => canaisTodos().find(c => c.id === id)?.foto || '';
+const fotoHtml = (id, cl = 'fc') => { const f = fotoCanal(id); return f ? `<img class="${cl}" src="${esc(f)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : `<i class="${cl}" style="background:${corCanal(id)}"></i>`; };
+const canalHtml = c => c?.id ? `<span class="canal" style="--cc:${corCanal(c.id)}">${fotoHtml(c.id)}${esc(canalPorId(c.id)?.nome || c.nome || 'canal')}</span>` : '<span class="semcanal">escolha o canal</span>';
 const opcCanais = (sel, extra) => { const L2 = canaisTodos(); if (extra?.id && !L2.some(c => c.id === extra.id)) L2.push(extra); return L2.map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.nome)}</option>`).join(''); };
 const canalPorId = id => canaisTodos().find(c => c.id === id) || null;
 // canal de um item: o escolhido; num não publicado ou pedido sem canal, o padrão do programa (Animador → Turma, Editor → Problems)
@@ -293,8 +303,9 @@ function cardHtml(i) {
   } else {
     const real = fx !== 'concluido' && fx !== 'pedido', loc = localDe(i), link = real ? 'https://youtu.be/' + encodeURIComponent(i.id) : '';
     const img = real ? thumbYt(i.id) : i.thumb || '';
-    th = real ? `<a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${img}')" aria-label="Abrir no YouTube"></a>`
-      : `<span class="th" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}"></span>`;
+    const selo = canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'selo-canal') : '';
+    th = real ? `<a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${img}')" aria-label="Abrir no YouTube">${selo}</a>`
+      : `<span class="th" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
     tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${linhaQuando(i)}</div>
       <div class="ln">${canalHtml(canalDe(i))}${fx === 'pedido' ? `<span>${esc(MODOS[i.modo] || '')}</span>` : ''}</div>
       <div class="ln"><span>${esc(PROGS[i.programa] || 'Publicações')}</span>·${quemHtml(i.por)}${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>`;
@@ -326,8 +337,8 @@ function pinta() {
   const rolagem = $('.quadro')?.scrollLeft || 0;
   if (F.piv === 'agenda') $('#area').innerHTML = agendaHtml(I);
   else {
-    const f = F.piv, H = I.filter(i => formatoDe(i) === f && ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
-    const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}"><b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${faixaDe(i) === 'noAr' ? 'no ar' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje ${f === 'short' ? 'nos Shorts' : 'nos vídeos longos'}.</div>`}</div>`;
+    const f = F.piv, H = I.filter(i => ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
+    const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fh') : ''}<b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'} · ${faixaDe(i) === 'noAr' ? 'no ar' : atrasado(i) ? 'atrasado' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje.</div>`}</div>`;
     const faixas = FAIXAS.map(([k, n, d]) => {
       const lista = k === 'local' ? loc.filter(v => formatoLocal(v) === f) : I.filter(i => formatoDe(i) === f && faixaDe(i) === k).sort(ordem(k));
       if (k === 'local' && !lista.length) return '';
@@ -338,7 +349,7 @@ function pinta() {
   }
   $('#rodInfo').textContent = `${(L.itens || []).length} na lista da equipe · ${L.em ? 'atualizada ' + dataH(L.em) : 'ainda não buscada'}${buscando ? ' · buscando…' : ''}`;
   const ATR = (L.itens || []).filter(i => passa(i) && atrasado(i)).sort((a, b) => a.publicaEm - b.publicaEm);
-  $('#avisos').innerHTML = (erroNuvem ? `<div class="erro">Não consegui buscar a lista: ${esc(erroNuvem)}</div>` : '') + (ATR.length ? `<div class="atrasos"><b>${ATR.length} atrasado${ATR.length > 1 ? 's' : ''}</b>${ATR.slice(0, 6).map(i => `<span class="a"><span>${esc(i.titulo)} · ${linhaQuando(i)} · ${esc(canalDe(i)?.nome || 'sem canal')}</span>${faixaDe(i) === 'agendado' ? `<button class="bt sm" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : ''}<button class="bt sm" data-mover="${esc(i.id)}" data-tipo="item">${faixaDe(i) === 'agendado' ? 'Mover…' : 'Já saiu? / Nova data'}</button></span>`).join('')}${ATR.length > 6 ? `<span class="a">e mais ${ATR.length - 6}</span>` : ''}</div>` : '');
+  $('#avisos').innerHTML = (erroNuvem ? `<div class="erro">Não consegui buscar a lista: ${esc(erroNuvem)}</div>` : '') + (ATR.length ? `<div class="atrasos"><b>${ATR.length} atrasado${ATR.length > 1 ? 's' : ''}</b>${ATR.slice(0, 6).map(i => `<span class="a">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fa') : ''}<span>${esc(i.titulo)} · ${linhaQuando(i)} · ${esc(canalDe(i)?.nome || 'sem canal')}</span>${faixaDe(i) === 'agendado' ? `<button class="bt sm" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : ''}<button class="bt sm" data-mover="${esc(i.id)}" data-tipo="item">${faixaDe(i) === 'agendado' ? 'Mover…' : 'Já saiu? / Nova data'}</button></span>`).join('')}${ATR.length > 6 ? `<span class="a">e mais ${ATR.length - 6}</span>` : ''}</div>` : '');
   $('#btCanais').hidden = !L.adm;
   ligaArrastar();
 }
@@ -355,13 +366,13 @@ function agendaHtml(I) {
   for (let k = 0; k < dias; k++) {
     const d = new Date(ini); d.setDate(ini.getDate() + k);
     const L2 = (porDia.get(d.toDateString()) || []).sort((a, b) => dataAgenda(a) - dataAgenda(b));
-    cel += `<div class="dia${d.getMonth() !== base.getMonth() ? ' fora' : ''}${mesmoDia(d, Date.now()) ? ' hj' : ''}" data-dia="${+d}"><div class="n">${d.getDate()}</div>${L2.map(i => { const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr'; return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corCanal(canalDe(i)?.id)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[fx]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${hora(dataAgenda(i))} ${esc(i.titulo)} ${atrasado(i) ? '<em>atrasado</em>' : fx === 'concluido' || fx === 'pedido' ? '<em>planejado</em>' : fx === 'noAr' ? '<em>no ar</em>' : ''}</button>`; }).join('')}</div>`;
+    cel += `<div class="dia${d.getMonth() !== base.getMonth() ? ' fora' : ''}${mesmoDia(d, Date.now()) ? ' hj' : ''}" data-dia="${+d}"><div class="n">${d.getDate()}</div>${L2.map(i => { const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr'; return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corCanal(canalDe(i)?.id)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[fx]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${hora(dataAgenda(i))} ${esc(i.titulo)} ${atrasado(i) ? '<em>atrasado</em>' : fx === 'concluido' || fx === 'pedido' ? '<em>planejado</em>' : fx === 'noAr' ? '<em>no ar</em>' : ''}</button>`; }).join('')}</div>`;
   }
   const semData = I.filter(i => ['concluido', 'pedido'].includes(faixaDe(i)) && !i.publicaEm && (F.agFmt === 'todos' || formatoDe(i) === F.agFmt)).length;
   return `<div class="agenda"><div class="ag-cab"><button class="bt sm" data-mes="-1" aria-label="Mês anterior">‹</button><h2>${base.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2><button class="bt sm" data-mes="1" aria-label="Próximo mês">›</button>${MES ? '<button class="lk" data-mes="0">voltar para hoje</button>' : ''}<span class="sp"></span>
     <div class="seg">${[['todos', 'Tudo'], ['short', 'Shorts'], ['longo', 'Vídeos longos']].map(([k, n]) => `<button data-agfmt="${k}" class="${F.agFmt === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>
     <div class="mes">${cel}</div>
-    <div class="legenda">${canaisTodos().map(c => `<span style="--cc:${corCanal(c.id)}"><i></i>${esc(c.nome)}</span>`).join('')}<span>· arraste para mudar o dia · clique para mover</span>${semData ? `<span>· ${semData} não publicado${semData > 1 ? 's' : ''} sem data planejada</span>` : ''}</div></div>`;
+    <div class="legenda">${canaisTodos().map(c => `<span style="--cc:${corCanal(c.id)}">${fotoHtml(c.id, 'fl')}${esc(c.nome)}</span>`).join('')}<span>· arraste para mudar o dia · clique para mover</span>${semData ? `<span>· ${semData} não publicado${semData > 1 ? 's' : ''} sem data planejada</span>` : ''}</div></div>`;
 }
 
 // ---------- arrastar (cartões entre faixas e abas, eventos entre dias) ----------
@@ -576,7 +587,7 @@ async function organizar(v) {
   const W = janela(), J = W.J; let sel = '';
   const pj = (erro = '') => {
     J.innerHTML = `<h3>Em qual canal vai sair?</h3><p><b>${esc(v.titulo || v.nome)}</b> · ${formato === 'short' ? 'Short (vídeo em pé)' : 'vídeo longo'}</p>
-      <div class="escolha">${canaisTodos().map(c => `<button data-cn="${esc(c.id)}" style="--c:${corCanal(c.id)}${sel === c.id ? ';border-color:#fff' : ''}"><span class="q"></span><span><b>${esc(c.nome)}</b><small>${esc(c.arroba || '')}</small></span></button>`).join('')}</div>
+      <div class="escolha">${canaisTodos().map(c => `<button data-cn="${esc(c.id)}" style="--c:${corCanal(c.id)}${sel === c.id ? ';border-color:#fff' : ''}">${c.foto ? `<img class="q" src="${esc(c.foto)}" alt="" referrerpolicy="no-referrer">` : '<span class="q"></span>'}<span><b>${esc(c.nome)}</b><small>${esc(c.arroba || '')}</small></span></button>`).join('')}</div>
       ${erro ? `<div class="erro">${esc(erro)}</div>` : ''}<div class="pes"><button class="bt" data-dep>Escolher depois</button><button class="bt pri" data-ok${sel ? '' : ' disabled'}>Salvar</button></div>`;
     $$('[data-cn]', J).forEach(b => b.onclick = () => { sel = b.dataset.cn; pj(); });
     J.querySelector('[data-dep]').onclick = async () => { W.fecha(); try { await salva(null); } catch (er) { toast('Não consegui pôr na lista: ' + er.message, '#ff6b5b'); } };

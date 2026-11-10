@@ -59,7 +59,25 @@ select option{color:#000}
 .faixa>h2 i{font:400 13px "Segoe UI",system-ui;font-style:normal;color:var(--mu)}
 .faixa>h2 .sp{flex:1}
 .faixa .dica{color:var(--mu2);font-size:12px;margin:-4px 0 8px}
-.faixa .cards{display:flex;flex-direction:column;gap:6px;min-height:120px;padding:2px;margin:-2px;flex:1}
+.faixa .cards{display:flex;flex-direction:column;gap:6px;min-height:120px;padding:2px 6px 2px 2px;margin:-2px;flex:1;overflow-y:auto;max-height:max(420px,calc(100vh - 260px));scrollbar-color:#555 transparent;scrollbar-width:thin}
+.faixa>h2[data-foco]{cursor:pointer}.faixa>h2[data-foco]:hover{background:rgba(255,255,255,.06)}.faixa>h2 .abre{font:400 12px "Segoe UI",system-ui;color:var(--mu);align-self:center}
+.faixa>h2[data-foco]:hover .abre{color:#fff}
+.pi{display:inline-grid;place-items:center;width:18px;height:18px;flex:none;background:#333;color:#fff;vertical-align:middle}.pi b{font:700 9px/1 "Segoe UI",system-ui}.pi:has(svg){background:none}.pi svg{width:18px;height:18px;display:block}
+.card .ln.mexeu{color:var(--mu2)}
+.atrasos>b[data-foco]{cursor:pointer}.atrasos>b small{font:400 12px "Segoe UI",system-ui;opacity:.8;margin-left:6px}.atrasos .vai{cursor:pointer}.atrasos .vai:hover{text-decoration:underline}
+.destaque{outline:2px solid var(--agendado);outline-offset:3px}
+/* lista de uma faixa */
+.foco{padding:16px clamp(16px,4vw,56px) 40px}
+.foco-cab{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-top:6px solid var(--c);padding-top:12px}
+.foco-cab h2{margin:0;font:300 34px/1.1 var(--leve)}.foco-cab h2 i{font:400 14px "Segoe UI",system-ui;font-style:normal;color:var(--mu);margin-left:10px}
+.foco-tr{display:flex;gap:14px;flex-wrap:wrap;margin-left:auto}.foco-tr .lk.on{color:#fff;font-weight:600;text-decoration:underline}
+.foco-f{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin:14px 0 6px}.foco-f>label{font-size:12px;color:var(--mu);text-transform:lowercase}
+.dia-g h3{margin:22px 0 8px;font:300 22px/1.2 var(--leve);text-transform:lowercase}.dia-g h3 i{font:400 13px "Segoe UI",system-ui;font-style:normal;color:var(--mu)}
+.lista{display:flex;flex-direction:column;gap:4px}
+.card.linha{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(200px,auto);align-items:center;position:relative}
+.card.linha .th{height:84px;aspect-ratio:auto}.card.linha .ac{padding:8px 12px;justify-content:flex-end;max-width:360px}
+.card.linha .chip-fmt{position:absolute;left:8px;top:6px;z-index:1;background:rgba(0,0,0,.75);font-size:11px;padding:1px 6px}
+@media (max-width:760px){.card.linha{grid-template-columns:110px minmax(0,1fr)}.card.linha .ac{grid-column:1/-1;justify-content:flex-start;max-width:none}.card.linha .th{height:62px}}
 .faixa.alvo .cards{outline:2px dashed var(--c);background:rgba(255,255,255,.04)}
 .faixa .vazio{color:var(--mu2);font-size:12.5px;padding:18px 10px;border:1px dashed #444;text-align:center}
 .card{background:var(--p);border-left:4px solid var(--c);display:flex;flex-direction:column;cursor:default;outline:2px solid transparent;outline-offset:-2px;transition:transform .12s var(--entra)}
@@ -249,11 +267,14 @@ const paraNuvem = i => { const { meu, por, ...x } = i; return x; };
 const NOMES = {};
 const nomeDe = async u => { if (!u || NOMES[u]) return; NOMES[u] = { nome: '…' }; try { const q = await window.EstudioConta?.quem?.(u); NOMES[u] = { nome: q?.nome || 'Alguém da equipe', foto: q?.foto || '' }; } catch { NOMES[u] = { nome: 'Alguém da equipe' }; } agendaPinta(); };
 let pintaPend = 0; const agendaPinta = () => { if (!pintaPend) pintaPend = requestAnimationFrame(() => { pintaPend = 0; pinta(); }); };
+const IC_PROG = { animador: ['an', 'An'], editor: ['ed', 'Ed'], shorts: ['sh', 'Sh'], publicacoes: ['x-publicacoes', 'Pu'] };
+const progIc = p => { const [id, l] = IC_PROG[p] || IC_PROG.publicacoes; return `<span class="pi" data-estudio-icone="${id}" title="${esc(PROGS[p] || 'Publicações')}"><b>${l}</b></span>`; };
 const quemHtml = u => { const n = NOMES[u]; if (!n) nomeDe(u); return `<span class="quem">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}${esc(n?.nome || '…')}</span>`; };
 
 // ---------- filtros e aba ----------
-const F0 = { piv: 'short', busca: '', canal: '', prog: '', quem: '', agFmt: 'todos' };
-let F = (() => { try { const v = { ...F0, ...JSON.parse(localStorage.getItem(LSF) || '{}') }; if (!['short', 'longo', 'agenda'].includes(v.piv)) v.piv = 'short'; return v; } catch { return { ...F0 }; } })();
+const F0 = { piv: 'todos', busca: '', canal: '', prog: '', quem: '', agFmt: 'todos', foco: '', fmt: 'todos', per: 'hoje', ord: 'cresce' };
+let F = (() => { try { const v = { ...F0, ...JSON.parse(localStorage.getItem(LSF) || '{}') }; if (!['todos', 'short', 'longo', 'agenda'].includes(v.piv)) v.piv = 'todos'; return v; } catch { return { ...F0 }; } })();
+const fmtOk = (fmt, f) => f === 'todos' || fmt === f;
 let MES = 0; // meses a partir do atual, na agenda
 const guardaF = () => { try { localStorage.setItem(LSF, JSON.stringify(F)); } catch { } };
 const passa = i => {
@@ -290,13 +311,13 @@ async function carregaLocais() {
 // ---------- pintar ----------
 const thumbYt = id => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
 const URLS = new Map(); const urlDe = v => { if (!URLS.has(v.id)) URLS.set(v.id, URL.createObjectURL(v.blob)); return URLS.get(v.id); };
-function cardHtml(i) {
+function cardHtml(i, linha) {
   const fx = i._local ? 'local' : faixaDe(i), cor = `var(--${fx})`, mov = podeMover(i), fmt = i._local ? formatoLocal(i) : formatoDe(i);
   const podePub = pode('publicacoes.publicar');
   let th, tx, ac = [];
   if (i._local) {
     th = `<span class="th"><video muted preload="metadata" src="${urlDe(i)}#t=0.5"></video></span>`;
-    tx = `<b title="${esc(i.titulo || i.nome)}">${esc(i.titulo || i.nome)}</b><div class="ln">${esc(PROGS[i.programa] || 'Vídeo')} · ${mb(i.blob?.size)} · exportado ${dataH(i.em)}</div>`;
+    tx = `<b title="${esc(i.titulo || i.nome)}">${esc(i.titulo || i.nome)}</b><div class="ln">${progIc(i.programa)}${esc(PROGS[i.programa] || 'Vídeo')} · ${mb(i.blob?.size)} · exportado ${dataH(i.em)}</div>`;
     ac.push(`<button class="lk" data-org="${esc(i.id)}" title="Põe em Não publicados, para a equipe ver">Organizar</button>`);
     if (podePub) ac.push(`<button class="lk" data-pub="${esc(i.id)}">Postar…</button>`);
     ac.push(`<button class="lk" data-baixa="${esc(i.id)}">Baixar</button>`, `<button class="lk" data-desc="${esc(i.id)}">Descartar</button>`);
@@ -308,7 +329,8 @@ function cardHtml(i) {
       : `<span class="th" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
     tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${linhaQuando(i)}</div>
       <div class="ln">${canalHtml(canalDe(i))}${fx === 'pedido' ? `<span>${esc(MODOS[i.modo] || '')}</span>` : ''}</div>
-      <div class="ln"><span>${esc(PROGS[i.programa] || 'Publicações')}</span>·${quemHtml(i.por)}${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>`;
+      <div class="ln">${progIc(i.programa)}<span>${esc(PROGS[i.programa] || 'Publicações')}</span>·<span>por</span>${quemHtml(i.por)}${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>
+      ${i.editadoEm ? `<div class="ln mexeu"><span>mexido</span>${i.editadoPor && i.editadoPor !== i.por ? `<span>por</span>${quemHtml(i.editadoPor)}` : ''}<span>${dataH(i.editadoEm)}</span></div>` : ''}`;
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
     if (fx === 'agendado') ac.push(`<button class="lk" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>`);
@@ -319,13 +341,14 @@ function cardHtml(i) {
     if (i.meu || L.adm) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
   if (mov) ac.unshift(`<button class="lk" data-mover="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}" style="color:#fff">Mover…</button>`);
-  return `<div class="card ${fmt}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov ? ' draggable="true"' : ''}>${th}<div class="tx">${tx}</div><div class="ac">${ac.join('')}</div></div>`;
+  const fmtChip = linha ? `<span class="chip-fmt">${fmt === 'short' ? 'Short' : 'Vídeo longo'}</span>` : '';
+  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${th}<div class="tx">${tx}</div><div class="ac">${ac.join('')}</div></div>`;
 }
 const ordem = fx => fx === 'agendado' || fx === 'pedido' ? (a, b) => quando(a) - quando(b) : fx === 'concluido' ? (a, b) => (a.publicaEm || 9e15) - (b.publicaEm || 9e15) || b.enviadoEm - a.enviadoEm : (a, b) => quando(b) - quando(a);
 function pinta() {
   const I = (L.itens || []).filter(passa), loc = soltos().map(v => ({ ...v, _local: true }));
-  const conta = f => I.filter(i => formatoDe(i) === f).length + loc.filter(v => formatoLocal(v) === f).length;
-  $('#pivo').innerHTML = [['short', 'Shorts'], ['longo', 'Vídeos longos'], ['agenda', 'Agenda']].map(([k, n]) => `<button data-piv="${k}" class="${F.piv === k ? 'on' : ''}"${k !== 'agenda' ? ` data-alvo-fmt="${k}"` : ''}>${n}${k !== 'agenda' ? `<i>${conta(k)}</i>` : ''}</button>`).join('');
+  const conta = f => I.filter(i => fmtOk(formatoDe(i), f)).length + loc.filter(v => fmtOk(formatoLocal(v), f)).length;
+  $('#pivo').innerHTML = [['todos', 'Todos'], ['short', 'Shorts'], ['longo', 'Vídeos longos'], ['agenda', 'Agenda']].map(([k, n]) => `<button data-piv="${k}" class="${F.piv === k && !F.foco ? 'on' : ''}"${k === 'short' || k === 'longo' ? ` data-alvo-fmt="${k}"` : ''}>${n}${k !== 'agenda' ? `<i>${conta(k)}</i>` : ''}</button>`).join('');
   // filtros
   const pessoas = [...new Set((L.itens || []).map(i => i.por).filter(Boolean))], progs = [...new Set((L.itens || []).map(i => i.programa || 'publicacoes'))];
   pessoas.forEach(u => NOMES[u] || nomeDe(u));
@@ -335,23 +358,47 @@ function pinta() {
   $('#fQuem').innerHTML = opt('', 'Toda a equipe', F.quem) + opt('eu', 'Só os meus', F.quem) + pessoas.map(u => opt(u, NOMES[u]?.nome || '…', F.quem)).join('');
   if ($('#fBusca') !== document.activeElement) $('#fBusca').value = F.busca;
   const rolagem = $('.quadro')?.scrollLeft || 0;
-  if (F.piv === 'agenda') $('#area').innerHTML = agendaHtml(I);
+  if (F.foco) $('#area').innerHTML = focoHtml(I, loc);
+  else if (F.piv === 'agenda') $('#area').innerHTML = agendaHtml(I);
   else {
     const f = F.piv, H = I.filter(i => ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
     const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fh') : ''}<b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'} · ${faixaDe(i) === 'noAr' ? 'no ar' : atrasado(i) ? 'atrasado' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje.</div>`}</div>`;
     const faixas = FAIXAS.map(([k, n, d]) => {
-      const lista = k === 'local' ? loc.filter(v => formatoLocal(v) === f) : I.filter(i => formatoDe(i) === f && faixaDe(i) === k).sort(ordem(k));
+      const lista = k === 'local' ? loc.filter(v => fmtOk(formatoLocal(v), f)) : I.filter(i => fmtOk(formatoDe(i), f) && faixaDe(i) === k).sort(ordem(k));
       if (k === 'local' && !lista.length) return '';
-      return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2>${n}<i>${lista.length}</i></h2><div class="dica">${d}</div><div class="cards">${lista.length ? lista.map(cardHtml).join('') : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
+      return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2 data-foco="${k}" title="Ver só ${esc(n)}, organizado por dia e com filtros">${n}<i>${lista.length}</i><span class="sp"></span><span class="abre">ver tudo ›</span></h2><div class="dica">${d}</div><div class="cards">${lista.length ? lista.map(i => cardHtml(i)).join('') : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
     }).join('');
     $('#area').innerHTML = hoje + `<div class="quadro">${faixas}</div>`;
     const q = $('.quadro'); if (q) q.scrollLeft = rolagem;
   }
   $('#rodInfo').textContent = `${(L.itens || []).length} na lista da equipe · ${L.em ? 'atualizada ' + dataH(L.em) : 'ainda não buscada'}${buscando ? ' · buscando…' : ''}`;
   const ATR = (L.itens || []).filter(i => passa(i) && atrasado(i)).sort((a, b) => a.publicaEm - b.publicaEm);
-  $('#avisos').innerHTML = (erroNuvem ? `<div class="erro">Não consegui buscar a lista: ${esc(erroNuvem)}</div>` : '') + (ATR.length ? `<div class="atrasos"><b>${ATR.length} atrasado${ATR.length > 1 ? 's' : ''}</b>${ATR.slice(0, 6).map(i => `<span class="a">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fa') : ''}<span>${esc(i.titulo)} · ${linhaQuando(i)} · ${esc(canalDe(i)?.nome || 'sem canal')}</span>${faixaDe(i) === 'agendado' ? `<button class="bt sm" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : ''}<button class="bt sm" data-mover="${esc(i.id)}" data-tipo="item">${faixaDe(i) === 'agendado' ? 'Mover…' : 'Já saiu? / Nova data'}</button></span>`).join('')}${ATR.length > 6 ? `<span class="a">e mais ${ATR.length - 6}</span>` : ''}</div>` : '');
+  $('#avisos').innerHTML = (erroNuvem ? `<div class="erro">Não consegui buscar a lista: ${esc(erroNuvem)}</div>` : '') + (ATR.length ? `<div class="atrasos"><b data-foco="atrasado" title="Ver todos os atrasados">${ATR.length} atrasado${ATR.length > 1 ? 's' : ''} <small>ver todos ›</small></b>${ATR.slice(0, 6).map(i => `<span class="a">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fa') : ''}<span class="vai" data-mover="${esc(i.id)}" data-tipo="item" data-data="1" title="Mudar a data">${esc(i.titulo)} · ${linhaQuando(i)} · ${esc(canalDe(i)?.nome || 'sem canal')}</span>${faixaDe(i) === 'agendado' ? `<button class="bt sm" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : ''}<button class="bt sm" data-mover="${esc(i.id)}" data-tipo="item" data-data="1">${faixaDe(i) === 'agendado' ? 'Nova data' : 'Já saiu? / Nova data'}</button></span>`).join('')}${ATR.length > 6 ? `<span class="a"><button class="lk" data-foco="atrasado">e mais ${ATR.length - 6} ›</button></span>` : ''}</div>` : '');
   $('#btCanais').hidden = !L.adm;
   ligaArrastar();
+  try { window.EstudioIcones?.aplicar?.(document.body); } catch { }
+}
+
+// ---------- LISTA DE UMA FAIXA (clicar no título da faixa ou em "atrasados"): por dia, com formato, período e ordem ----------
+const PASSADO = { noAr: 1, naoListado: 1, atrasado: 1, local: 1 };
+const dataFoco = i => i._local ? i.em : faixaDe(i) === 'naoListado' ? i.enviadoEm : faixaDe(i) === 'concluido' || faixaDe(i) === 'pedido' ? i.publicaEm || null : quando(i);
+function focoHtml(I, loc) {
+  const k = F.foco, nome = k === 'atrasado' ? 'Atrasados' : NOMEF[k] || '', cor = k === 'atrasado' ? 'var(--atr)' : `var(--${k})`;
+  const h0 = new Date(); h0.setHours(0, 0, 0, 0); const ini = +h0, fim = ini + 864e5, passado = PASSADO[k];
+  const PER = [['hoje', 'Hoje'], ['7', passado ? 'Últimos 7 dias' : 'Próximos 7 dias'], ['30', passado ? 'Últimos 30 dias' : 'Próximos 30 dias'], ['todos', 'Todos']];
+  const naPer = t => F.per === 'todos' ? true : !t ? false : F.per === 'hoje' ? t >= ini && t < fim : passado ? t >= ini - (+F.per - 1) * 864e5 && t < fim : t >= ini && t < ini + +F.per * 864e5;
+  const base = k === 'local' ? loc : k === 'atrasado' ? I.filter(atrasado) : I.filter(i => faixaDe(i) === k);
+  const L2 = base.filter(i => fmtOk(i._local ? formatoLocal(i) : formatoDe(i), F.fmt) && naPer(dataFoco(i)));
+  const cresce = F.ord !== 'desce'; L2.sort((a, b) => ((dataFoco(a) ?? (cresce ? 9e15 : -1)) - (dataFoco(b) ?? (cresce ? 9e15 : -1))) * (cresce ? 1 : -1));
+  const grupos = []; for (const i of L2) { const t = dataFoco(i), g = t ? new Date(t).toDateString() : 'sem'; let x = grupos[grupos.length - 1]; if (!x || x.g !== g) grupos.push(x = { g, t, itens: [] }); x.itens.push(i); }
+  const titDia = t => { if (!t) return 'sem data'; const d = new Date(t), rel = mesmoDia(d, Date.now()) ? 'hoje · ' : mesmoDia(d, Date.now() + 864e5) ? 'amanhã · ' : mesmoDia(d, Date.now() - 864e5) ? 'ontem · ' : ''; return rel + d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); };
+  const seg = (campo, ops) => `<div class="seg">${ops.map(([v, n]) => `<button data-fseg="${campo}" data-v="${v}" class="${F[campo] === v ? 'on' : ''}">${n}</button>`).join('')}</div>`;
+  const outras = [...FAIXAS.map(([x, n]) => [x, n]), ['atrasado', 'Atrasados']].filter(([x]) => x !== 'local' || loc.length);
+  return `<div class="foco" style="--c:${cor}"><div class="foco-cab"><button class="bt sm" data-foco="">‹ Voltar ao quadro</button><h2>${esc(nome)}<i>${L2.length}${L2.length !== base.length ? ` de ${base.length}` : ''}</i></h2>
+      <div class="foco-tr">${outras.map(([x, n]) => `<button class="lk${x === k ? ' on' : ''}" data-foco="${x}">${n}</button>`).join('')}</div></div>
+    <div class="foco-f"><label>formato</label>${seg('fmt', [['todos', 'Todos'], ['short', 'Shorts'], ['longo', 'Vídeos longos']])}<label>quando</label>${seg('per', PER)}<label>ordem</label>${seg('ord', [['cresce', passado ? 'Mais antigos' : 'Mais perto'], ['desce', passado ? 'Mais novos' : 'Mais longe']])}<span class="nota">canal, programa, quem e busca: filtros lá em cima</span></div>
+    ${grupos.length ? grupos.map(x => `<div class="dia-g"><h3>${esc(titDia(x.t))} <i>${x.itens.length}</i></h3><div class="lista">${x.itens.map(i => cardHtml(i, true)).join('')}</div></div>`).join('')
+      : `<div class="vazio" style="margin-top:16px">Nada aqui com esses filtros.${F.per !== 'todos' ? ' <button class="lk" data-fseg="per" data-v="todos">ver todos</button>' : ''}</div>`}</div>`;
 }
 
 // ---------- agenda do mês ----------
@@ -429,7 +476,7 @@ function painel(titulo) {
   return { B: p.querySelector('.pb'), fecha };
 }
 // MOVER: formato, canal, situação e data (o item da equipe) ou só o formato (vídeo deste navegador)
-function painelMover(i, faixaAlvo) {
+function painelMover(i, faixaAlvo, op = {}) {
   if (i._local) {
     const P = painel('Mover'); let fmt = formatoLocal(i);
     const pi = () => { P.B.innerHTML = `<p><b>${esc(i.titulo || i.nome)}</b></p><p class="nota">Vídeo só deste navegador. Para a equipe ver, use "Organizar".</p><label class="r">Formato</label><div class="seg">${[['short', 'Short (em pé)'], ['longo', 'Vídeo longo']].map(([k, n]) => `<button data-f="${k}" class="${fmt === k ? 'on' : ''}">${n}</button>`).join('')}</div><div class="pes"><button class="bt" data-c>Cancelar</button><button class="bt pri" data-s>Salvar</button></div>`;
@@ -439,7 +486,7 @@ function painelMover(i, faixaAlvo) {
   }
   const fx = faixaDe(i), real = !['concluido', 'pedido'].includes(fx);
   const st = { fmt: formatoDe(i), canal: canalDe(i)?.id || '', sit: faixaAlvo && faixaAlvo !== fx ? faixaAlvo : fx, em: i.publicaEm ? emLocal(i.publicaEm) : '', link: '', erro: '' };
-  const P = painel('Mover');
+  const P = painel(op.data ? 'Nova data' : 'Mover');
   const SIT = real ? [['agendado', 'Agendado'], ['naoListado', 'Não listado'], ['noAr', 'Publicado']] : [[fx, fx === 'pedido' ? 'Continua na fila' : 'Continua não publicado'], ['agendado', 'Já agendado no YouTube'], ['naoListado', 'Já não listado'], ['noAr', 'Já publicado']];
   const pi = () => {
     const viraReal = !real && st.sit !== fx;
@@ -464,6 +511,7 @@ function painelMover(i, faixaAlvo) {
     P.B.querySelector('[data-c]').onclick = P.fecha;
     const pb = P.B.querySelector('[data-pub]'); if (pb) pb.onclick = () => { P.fecha(); publicarItem(i); };
     P.B.querySelector('[data-ok]').onclick = salvar;
+    if (op.data && !op._feito) { op._feito = true; const em2 = P.B.querySelector('[data-em]'); if (em2) { em2.scrollIntoView({ block: 'center' }); em2.focus(); try { em2.showPicker?.(); } catch { } em2.classList.add('destaque'); } }
   };
   async function salvar() {
     const c = canalPorId(st.canal) || (canalDe(i)?.id === st.canal ? canalDe(i) : null), t = st.em ? new Date(st.em).getTime() : null, canal = c ? { id: c.id, nome: c.nome } : { id: '', nome: '' };
@@ -488,12 +536,14 @@ function painelMover(i, faixaAlvo) {
 
 // ---------- cliques ----------
 document.addEventListener('click', async e => {
-  const b = e.target.closest('button,[data-mover],[data-pubi]'); if (!b) return;
+  const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); if (!b) return;
   const d = b.dataset;
-  if (d.piv) { F.piv = d.piv; guardaF(); pinta(); }
+  if (d.foco !== undefined) { const novo = d.foco; if (novo && novo !== F.foco) { F.per = novo === 'agendado' ? 'hoje' : 'todos'; F.fmt = 'todos'; F.ord = PASSADO[novo] ? 'desce' : 'cresce'; } F.foco = novo; guardaF(); pinta(); scrollTo(0, 0); }
+  else if (d.fseg) { F[d.fseg] = d.v; guardaF(); pinta(); }
+  else if (d.piv) { F.piv = d.piv; F.foco = ''; guardaF(); pinta(); }
   else if (d.agfmt) { F.agFmt = d.agfmt; guardaF(); pinta(); }
   else if (d.mes !== undefined) { MES = d.mes === '0' ? 0 : MES + +d.mes; pinta(); }
-  else if (d.mover) { const i = acha({ id: d.mover, tipo: d.tipo }); if (i) painelMover(i); }
+  else if (d.mover) { const i = acha({ id: d.mover, tipo: d.tipo }); if (i) painelMover(i, null, { data: d.data === '1' }); }
   else if (d.conf) { const i = L.itens.find(x => x.id === d.conf); if (!i || !confirm(`Confirma que "${i.titulo}" já saiu no canal ${canalDe(i)?.nome || ''}?`)) return; grava(i, { privacidade: 'public', modo: 'agora', confirmadoEm: Date.now() }, 'Confirmado: está no ar.'); }
   else if (d.cp) navigator.clipboard?.writeText(d.cp).then(() => toast('Link copiado.'));
   else if (d.lemb) { const i = L.itens.find(x => x.id === d.lemb); if (i) { poeLembrete(i); window.EstudioConta?.calendario?.(leCal().find(x => x.yt === i.id)); pinta(); } }

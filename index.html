@@ -1,7 +1,9 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="cel">
 <head>
 <meta charset="utf-8">
+<script>/* visual Celeste (2.0): tema escuro ou claro, o mesmo para o Estúdio todo */
+try{document.documentElement.dataset.tema=localStorage.getItem('ep-tema')==='claro'?'claro':'escuro'}catch{document.documentElement.dataset.tema='escuro'}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PUBLICAÇÕES · Estúdio Problems</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icone-180.png">
@@ -15,7 +17,7 @@ window.ESTUDIO_CONTA = { nuvem: true, token: () => window.EstudioLogin?.token?.(
 :root{--bg:#1d1d1d;--p:#2a2a2a;--p2:#333;--p3:#3d3d3d;--ln:#454545;--tx:#fff;--mu:#a8a8a8;--mu2:#7a7a7a;--ac:#e51400;
   --local:#647687;--atr:#e51400;--concluido:#fa6800;--pedido:#a200ff;--agendado:#f0a30a;--naoListado:#1ba1e2;--noAr:#60a917;
   --leve:"Segoe UI Light","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;--entra:cubic-bezier(.1,.9,.2,1);color-scheme:dark}
-*{box-sizing:border-box;border-radius:0!important}[hidden]{display:none!important}html,body{margin:0;min-height:100%}
+*{box-sizing:border-box}[hidden]{display:none!important}html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--tx);font:14px/1.4 "Segoe UI","Segoe UI Variable Text",system-ui,sans-serif;overflow-x:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:inherit}
@@ -179,26 +181,144 @@ textarea{height:auto;min-height:90px;padding:6px 8px;resize:vertical}
 @media (max-width:760px){.pst{grid-template-columns:1fr}.pst-f .dupla{grid-template-columns:1fr}}
 @media (max-width:700px){.faixa{flex-basis:84vw}.cola .l{flex-wrap:wrap}.cola .l span{width:100%}}
 </style>
+<link rel="preload" href="/estudio-inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/estudio-visual.css">
+<style>
+/* ===================== CELESTE (2.0, 11/11/2026): substitui o Metro acima. Tokens e cabeçalho: /estudio-visual.css =====================
+   Tirar a classe "cel" do <html> volta o visual antigo. Regras: nada de Metro, sem botões ou textos inúteis. */
+html.cel{--bg:var(--fundo);--p:var(--fundo-2);--p2:var(--fundo-3);--p3:var(--fundo-4);--ln:var(--linha);--tx:var(--texto);--mu:var(--texto-2);--mu2:var(--texto-3);--ac:var(--acento);--leve:var(--fonte);
+  --local:var(--neutro);--atr:var(--perigo);--concluido:var(--aviso);--pedido:#bf5af2;--agendado:#ffd60a;--naoListado:#5e5ce6;--noAr:var(--sucesso)}
+html.cel[data-tema="claro"]{--pedido:#8944ab;--agendado:#b25000;--naoListado:#3634a3}
+html.cel body{background:var(--fundo);color:var(--texto);font:400 var(--t-corpo)/1.45 var(--fonte);-webkit-font-smoothing:antialiased}
+/* abas do cabeçalho (Todos / Shorts / Vídeos longos / Agenda) com o número ao lado; arrastar um cartão para Shorts ou Vídeos longos continua valendo */
+html.cel .top .pivo{padding:2px;flex-wrap:nowrap}
+html.cel .top .pivo button{font:500 var(--t-pequeno) var(--fonte);opacity:1}
+html.cel .top .pivo button i{font:500 var(--t-legenda) var(--fonte);font-style:normal;color:var(--texto-3);margin:0;vertical-align:baseline;opacity:1}
+html.cel .top .pivo button.alvo{outline:2px dashed var(--acento);outline-offset:1px}
+html.cel .top .ic-prog{display:grid;place-items:center;border-radius:7px;background:#2b0606;color:#ff3b3b;box-shadow:inset 0 0 0 1px #ff3b3b;overflow:hidden}
+html.cel .top .ic-prog b{font:700 12px/1 var(--fonte)}html.cel .top .ic-prog:has(svg){background:none;box-shadow:none}html.cel .top .ic-prog svg{width:28px;height:28px}
+/* barra da tela: filtros à esquerda, ações à direita */
+html.cel .filtros{gap:var(--e2);padding:var(--e4) clamp(16px,3vw,32px) 0;align-items:center}
+html.cel .filtros .sp{flex:1}
+html.cel :is(input[type=search],input[type=text],input[type=datetime-local],input[type=date],select,textarea){height:var(--alt-controle);background:var(--fundo-3);color:var(--texto);border:1px solid transparent;border-radius:var(--raio-controle);padding:0 10px;font:400 var(--t-corpo) var(--fonte)}
+html.cel textarea{height:auto;padding:8px 10px}
+html.cel :is(input,select,textarea):focus{background:var(--fundo-3);border-color:var(--acento);box-shadow:0 0 0 3px var(--acento-suave)}
+html.cel select option{color:var(--texto);background:var(--elevado)}
+html.cel ::placeholder{color:var(--texto-3)}
+html.cel .lk{color:var(--texto-2);font-size:var(--t-pequeno);border-radius:var(--raio-p)}html.cel .lk:hover{color:var(--texto);text-decoration:none}
+html.cel .lk.forte,html.cel .foco-tr .lk.on{color:var(--acento-link);text-decoration:none}
+/* botões */
+html.cel .bt{height:var(--alt-controle);padding:0 var(--e3);border:0;border-radius:var(--raio-controle);background:var(--fundo-3);color:var(--texto);font:500 var(--t-corpo) var(--fonte);gap:var(--e2);transition:background var(--rapido),transform var(--rapido)}
+html.cel .bt:hover{background:var(--fundo-4)}html.cel .bt:active{background:var(--fundo-4);color:var(--texto);transform:scale(.97)}
+html.cel .bt.pri{background:var(--acento);color:var(--acento-texto);font-weight:600}html.cel .bt.pri:hover{background:var(--acento);filter:brightness(1.08)}
+html.cel .bt.sm{height:var(--alt-controle-p);padding:0 var(--e2);font-size:var(--t-pequeno);border-radius:var(--raio-p);font-weight:500}
+html.cel .bt.perigo{background:transparent;color:var(--perigo)}html.cel .bt.perigo:hover{background:color-mix(in srgb,var(--perigo) 12%,transparent)}
+html.cel .bt.ic{width:var(--alt-controle);padding:0;justify-content:center;background:transparent;color:var(--texto-2)}html.cel .bt.ic:hover{background:var(--fundo-3);color:var(--texto)}
+html.cel .bt svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+html.cel .bt.ic svg circle{fill:currentColor;stroke:none}
+/* controle segmentado (agenda: mês / semana etc.) */
+html.cel .seg{background:var(--fundo-3);border-radius:var(--raio-controle);padding:2px;gap:2px}
+html.cel .seg button{min-height:28px;border:0;border-radius:6px;background:transparent;color:var(--texto-2);font:500 var(--t-pequeno) var(--fonte)}
+html.cel .seg button:hover{background:transparent;color:var(--texto)}html.cel .seg button.on{background:var(--fundo-4);color:var(--texto);box-shadow:var(--sombra-1)}
+html.cel[data-tema="claro"] .seg button.on{background:#fff}
+/* "hoje": cartão discreto, sem bloco vermelho */
+html.cel .hoje{margin:var(--e4) clamp(16px,3vw,32px) 0;gap:var(--e2)}
+html.cel .hoje .rot{background:none;padding:6px 4px;min-width:0}
+html.cel .hoje .rot b{font:700 var(--t-titulo)/1.1 var(--fonte)}html.cel .hoje .rot b::first-letter{text-transform:uppercase}
+html.cel .hoje .rot small{color:var(--texto-3);opacity:1}
+html.cel .hoje .h{background:var(--fundo-2);border:1px solid var(--linha);border-left:1px solid var(--linha);border-radius:var(--raio-controle)}
+html.cel .hoje .h:hover{background:var(--fundo-3)}html.cel .hoje .h .fh{border-radius:50%}
+/* quadro de faixas */
+html.cel .quadro{gap:var(--e4);padding:var(--e5) clamp(16px,3vw,32px) 30px;scrollbar-color:var(--fundo-4) transparent}
+html.cel .faixa>h2{font:600 var(--t-destaque)/1.2 var(--fonte);border-top:0;padding-top:0;align-items:center;border-radius:var(--raio-p)}
+html.cel .faixa>h2::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c);flex:none;align-self:center}
+html.cel .faixa>h2 i,html.cel .faixa>h2 .abre{font:400 var(--t-legenda) var(--fonte);color:var(--texto-3)}
+html.cel .faixa>h2[data-foco]:hover{background:var(--fundo-3)}
+html.cel .faixa .dica{color:var(--texto-3)}
+html.cel .faixa.alvo .cards{outline:2px dashed var(--acento);background:var(--acento-suave);border-radius:var(--raio-cartao)}
+html.cel .faixa .vazio{border:1px dashed var(--linha-forte);border-radius:var(--raio-cartao);color:var(--texto-3)}
+html.cel .card{background:var(--fundo-2);border:1px solid var(--linha);border-left:1px solid var(--linha);border-radius:var(--raio-cartao);overflow:hidden;outline:0;transition:border-color var(--rapido),box-shadow var(--rapido)}
+html.cel .card:hover{border-color:var(--linha-forte);box-shadow:var(--sombra-2)}
+html.cel .card .th{border-radius:0}html.cel .card.linha .th{border-radius:0}
+html.cel .card .ln{color:var(--texto-3)}html.cel .card .quando{color:var(--texto-2)}
+html.cel .card .th .sel{border-radius:4px}
+html.cel .card.linha .chip-fmt{border-radius:var(--raio-p)}
+html.cel .canal .fc,html.cel .selo-canal,html.cel .ev .fe,html.cel .legenda .fl,html.cel .atrasos .fa,html.cel .quem img{border-radius:50%;outline:0}
+html.cel .pi{border-radius:4px}
+html.cel .selo-atr{border-radius:var(--raio-p);background:color-mix(in srgb,var(--perigo) 16%,transparent);color:var(--perigo);text-transform:none;letter-spacing:0}
+html.cel .destaque{outline:2px solid var(--acento);outline-offset:3px;border-radius:var(--raio-cartao)}
+/* atrasos, erro e aviso: cartões com a cor só no texto e no fundo bem leve */
+html.cel .atrasos{background:color-mix(in srgb,var(--perigo) 10%,var(--fundo-2));border-left:0;border-radius:var(--raio-cartao)}
+html.cel .atrasos>b{font:600 var(--t-destaque)/1.2 var(--fonte);color:var(--perigo)}
+html.cel .erro{background:color-mix(in srgb,var(--perigo) 12%,var(--fundo-2));color:var(--perigo);border-radius:var(--raio-controle)}
+html.cel .aviso{background:color-mix(in srgb,var(--aviso) 12%,var(--fundo-2));border-left:0;border-radius:var(--raio-controle)}
+/* lista de uma faixa e agenda */
+html.cel .foco,html.cel .agenda{padding:var(--e5) clamp(16px,3vw,32px) 40px}
+html.cel .foco-cab{border-top:0;padding-top:0}html.cel .foco-cab h2{font:700 var(--t-tela)/1.15 var(--fonte);display:flex;align-items:center;gap:10px}
+html.cel .foco-cab h2::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+html.cel .foco-cab h2 i{font:400 var(--t-pequeno) var(--fonte);color:var(--texto-3)}
+html.cel .foco-f>label,html.cel .mes .sem,html.cel label.r{text-transform:none;letter-spacing:0;color:var(--texto-2);font:500 var(--t-legenda) var(--fonte)}
+html.cel .dia-g h3,html.cel .ag-cab h2{font:600 var(--t-titulo)/1.2 var(--fonte);text-transform:none}
+html.cel .ag-cab h2::first-letter{text-transform:uppercase}
+html.cel .dia{background:var(--fundo-2);border-radius:var(--raio-controle)}
+html.cel .dia.fora{background:transparent;opacity:.5}html.cel .dia.hj{outline:2px solid var(--acento)}
+html.cel .dia .n{font:600 var(--t-pequeno)/1 var(--fonte);padding:4px}html.cel .dia.hj .n{color:var(--acento-link)}
+html.cel .dia.alvo{background:var(--acento-suave);outline:2px dashed var(--acento)}
+html.cel .ev{border-left-width:3px;border-radius:4px;background:var(--fundo-3)}html.cel .ev:hover{background:var(--fundo-4)}
+html.cel .ev.atr{background:color-mix(in srgb,var(--perigo) 16%,var(--fundo-3))}html.cel .ev.atr em{color:var(--perigo)}
+html.cel .ev em{color:var(--texto-3)}html.cel .legenda,html.cel .rod{color:var(--texto-3)}
+html.cel .legenda span i,html.cel .legenda span b{border-radius:50%}
+/* painel da direita */
+html.cel .pfundo{background:var(--veu)}
+html.cel .painel{background:var(--elevado);border-left:1px solid var(--linha);box-shadow:var(--sombra-3);animation:entra var(--painel) var(--curva-entra)}
+html.cel .painel .pc{background:none;height:var(--alt-cabecalho);padding:0 var(--e3) 0 var(--e5);border-bottom:1px solid var(--linha)}
+html.cel .painel .pc h3{font:600 17px var(--fonte)}
+html.cel .painel .pc button{width:var(--alt-controle);height:var(--alt-controle);border:0;border-radius:var(--raio-controle);background:transparent;color:var(--texto-2);font-size:14px}
+html.cel .painel .pc button:hover{background:var(--fundo-3);color:var(--texto)}
+html.cel .painel .pb{padding:var(--e4) var(--e5) var(--e5)}
+html.cel .nota{color:var(--texto-3)}
+/* janelas: no centro, com cantos de 14 px (antes era uma faixa de ponta a ponta) */
+html.cel .fundo{background:var(--veu);backdrop-filter:blur(4px);justify-content:center;padding:16px}
+html.cel .jan{width:min(640px,100%);max-height:calc(100vh - 32px);background:var(--elevado);border:0;border-radius:var(--raio-janela);box-shadow:var(--sombra-3);padding:var(--e5);animation:celEntraJan var(--painel) var(--curva-entra)}
+html.cel .jan>*{max-width:none}
+html.cel .jan.gerar,html.cel .jan.postar{width:min(1180px,100%);padding:var(--e5)}
+html.cel .jan h3{font:600 var(--t-titulo)/1.2 var(--fonte)}
+html.cel .jan a{color:var(--acento-link)}
+html.cel .jan video,html.cel .pst-v video,html.cel .pst-v .sem-v{border-radius:var(--raio-controle)}
+@keyframes celEntraJan{from{transform:scale(.96);opacity:0}}
+html.cel :is(.canal-cx,.cola,.prog-l .l){background:var(--fundo-2);border-radius:var(--raio-controle)}
+html.cel .canal-cx img,html.cel .canal-cx .sem{border-radius:50%}
+html.cel .vias button,html.cel .escolha button{background:var(--fundo-2);border:1px solid var(--linha);border-radius:var(--raio-controle)}
+html.cel .vias button.on{border-color:var(--acento);background:var(--acento-suave)}
+html.cel .escolha button:hover{border-color:var(--linha-forte);background:var(--fundo-3)}
+html.cel .escolha button b{font:600 var(--t-destaque)/1.2 var(--fonte)}html.cel .escolha button .q{width:12px;height:12px;border-radius:50%;align-self:center}
+html.cel .okcx{background:color-mix(in srgb,var(--sucesso) 14%,var(--fundo-2));border-radius:var(--raio-controle)}
+html.cel .passo i{border-radius:50%;background:var(--acento);color:var(--acento-texto)}
+html.cel .barra{height:4px;border-radius:2px;background:var(--fundo-4)}html.cel .barra i{border-radius:2px}
+html.cel .semcanal{color:var(--aviso)}
+/* aviso que some sozinho: embaixo, no centro */
+html.cel .toast{left:50%;right:auto;bottom:24px;transform:translateX(-50%);background:var(--elevado);color:var(--texto);border:1px solid var(--linha);border-left:1px solid var(--linha)!important;border-radius:10px;box-shadow:var(--sombra-2);padding:10px 16px;animation:celSobe var(--medio) var(--curva-entra)}
+@keyframes celSobe{from{transform:translate(-50%,12px);opacity:0}}
+</style>
 </head>
 <body>
 <header class="top">
-  <h1><span class="ic" data-estudio-icone="x-publicacoes" aria-hidden="true"><b>Pu</b></span><span>publicações<small>organizar os vídeos da equipe no YouTube</small></span></h1>
-  <div class="sp"></div>
-  <div class="acoes">
-    <button class="bt pri" id="btNovo" title="Pôr um vídeo na organização da equipe">+ Adicionar</button>
-    <button class="bt" id="btAtualizar" title="Busca a lista da equipe de novo">Atualizar</button>
-    <button class="bt" id="btCanais" hidden title="Canais da equipe (nome e ID): todo mundo escolhe nesta lista">Canais</button>
-    <span data-estudio-conta></span>
-  </div>
+  <a class="logo" href="./" title="Voltar ao início"><span class="ic-prog ic" data-estudio-icone="x-publicacoes" aria-hidden="true"><b>Pu</b></span><div><b>PUBLICAÇÕES</b><small>Estúdio Problems</small></div></a>
+  <nav class="abas pivo" id="pivo" aria-label="Formato"></nav>
+  <div class="esp"></div>
+  <span data-estudio-conta></span>
   <input type="file" id="arq" accept="video/*" hidden>
 </header>
-<nav class="pivo" id="pivo"></nav>
 <div class="filtros">
-  <input type="search" id="fBusca" placeholder="buscar pelo título" aria-label="Buscar pelo título">
+  <input type="search" id="fBusca" placeholder="Buscar pelo título" aria-label="Buscar pelo título">
   <select id="fCanal" aria-label="Canal"></select>
   <select id="fProg" aria-label="Programa de origem"></select>
   <select id="fQuem" aria-label="Quem enviou"></select>
-  <button class="lk" id="fLimpa">limpar filtros</button>
+  <button class="lk" id="fLimpa">Limpar</button>
+  <span class="sp"></span>
+  <button class="bt ic" id="btAtualizar" title="Buscar a lista de novo" aria-label="Buscar a lista de novo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg></button>
+  <button class="bt ic" id="btCanais" hidden title="Canais da equipe" aria-label="Canais da equipe"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
+  <button class="bt pri" id="btNovo" title="Pôr um vídeo na organização da equipe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar</button>
 </div>
 <div id="avisos" style="padding:0 clamp(16px,4vw,56px)"></div>
 <main id="area"></main>

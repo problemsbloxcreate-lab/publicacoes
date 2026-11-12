@@ -230,6 +230,8 @@ html.cel .hoje .h{background:var(--fundo-2);border:1px solid var(--linha);border
 html.cel .hoje .h:hover{background:var(--fundo-3)}html.cel .hoje .h .fh{border-radius:50%}
 /* quadro de faixas */
 html.cel .quadro{gap:var(--e4);padding:var(--e5) clamp(16px,3vw,32px) 30px;scrollbar-color:var(--fundo-4) transparent}
+/* as faixas dividem a largura e cabem lado a lado em telas comuns (antes a última ficava cortada na borda); em tela pequena o quadro rola para o lado */
+html.cel .faixa{flex:1 1 210px;min-width:196px;max-width:320px}
 html.cel .faixa>h2{font:600 var(--t-destaque)/1.2 var(--fonte);border-top:0;padding-top:0;align-items:center;border-radius:var(--raio-p)}
 html.cel .faixa>h2::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c);flex:none;align-self:center}
 html.cel .faixa>h2 i,html.cel .faixa>h2 .abre{font:400 var(--t-legenda) var(--fonte);color:var(--texto-3)}

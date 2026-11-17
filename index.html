@@ -193,6 +193,11 @@ html.inc .top{position:static!important;border-bottom:0!important;background:tra
 .pil-st{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font-size:12px;color:#a8a8a8}.pil-st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--e,#8a8f9a)}
 .lgs{display:inline-flex;gap:12px;flex-wrap:wrap}.lg-et{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#a8a8a8}.lg-et::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--e)}
 .cal-topo{padding:0 clamp(16px,4vw,56px)}
+/* episódios (17/11/2026) */
+.ep-seg{display:flex;gap:3px;margin:6px 0}.ep-seg i{flex:1;height:6px;border-radius:3px;background:#555}.ep-seg i.vz{background:transparent;border:1px dashed #f0a30a}
+.ep-pt{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:5px 0;border:0;border-top:1px solid rgba(255,255,255,.08);background:none;color:inherit;font:inherit;font-size:12.5px;cursor:pointer;flex-wrap:wrap}
+.ep-pt .n{width:48px;color:#8a8a8a;font-weight:600;flex:none}.ep-pt .nome{flex:1 1 90px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ep-pt.vz{color:#f0a30a;cursor:default}.ep-pt.vz .nome{font-style:italic}
+.ep-pt .pil-st{margin-left:auto}
 /* SEM DATA (17/11/2026) */
 :root{--semData:#1ba1e2}
 .sec-fmt{font:600 11px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--mu2);margin:8px 0 2px}
@@ -451,6 +456,16 @@ const buscaSit = () => pede('/preparativos').then(r => { const m = {}; for (cons
 const buscaIdeias = () => pede('/ideias').then(r => { IDEIAS = ((r.ideias || {}).lista || []).filter(x => x?.titulo && x.id).map(x => ({ id: x.id, titulo: String(x.titulo), formato: x.formato === 'longo' ? 'longo' : 'short' })); try { localStorage.setItem('ep-publicacoes-ideias', JSON.stringify(IDEIAS)); } catch { } pinta(); }).catch(() => { });
 const ideiaItem = x => ({ id: 'pi' + String(x.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 17), titulo: x.titulo.slice(0, 100), concluido: true, programa: 'preparativos', abrir: '/preparativos/?aba=ideias', formato: x.formato, canal: { id: '', nome: '' }, modo: 'naoListado', privacidade: 'unlisted', enviadoEm: Date.now(), publicaEm: null, _ideia: true });
 const itensTodos = () => { const reais = L.itens || [], ids = new Set(reais.map(i => i.id)); return [...reais, ...IDEIAS.map(ideiaItem).filter(v => !ids.has(v.id))]; };
+/* ---------- EPISÓDIOS EM PARTES (pedido da dona, 17/11/2026) ----------
+   Pelo NOME, nunca pela pasta ("Episódio 2 - Parte 1", "EP2 Parte 3", "Ep2 P4"…); sem "parte" no nome não agrupa. Um episódio (2 partes ou mais) é UM item: um cartão com as partes dentro,
+   um evento no calendário (no dia da primeira parte que sai), na faixa da parte MENOS adiantada. Escolha manual (feita no Preparativos, mesma memória 'ep-episodios-manual', chave = id do roteiro) vale mais. */
+const semAc = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const RE_EP = /(?:^|[^a-z0-9])(?:episodio|epis|ep)\s*\.?\s*(\d{1,3})\b[^0-9]{0,15}?\b(?:parte|part|pt|p)\s*\.?\s*(\d{1,2})\b/;
+const epManual = () => { try { return JSON.parse(localStorage.getItem('ep-episodios-manual') || '{}') || {}; } catch { return {}; } };
+const episodioDe = i => { if (!i || i._local || i._ideia) return null; const m = epManual()[prepIdDe(i) || i.id]; if (m === null) return null; if (m && m.ep > 0) return { ep: +m.ep, parte: +m.parte || 0 }; const r = RE_EP.exec(semAc(i.titulo)); return r ? { ep: +r[1], parte: +r[2] } : null; };
+const gruposEp = lista => { const m = new Map(); for (const i of lista) { const e = episodioDe(i); if (e) { const l = m.get(e.ep) || []; l.push({ i, e }); m.set(e.ep, l); } } for (const [k, l] of [...m]) if (l.length < 2) m.delete(k); return m; };
+const ORDEM_LANE = ['semData', 'concluido', 'pedido', 'agendado', 'naoListado', 'noAr'];
+const ETAPA_ORD = ['ideia', 'roteiro', 'audio', 'anim', 'pronto'];
 const laneDe = i => { const e = faixaDe(i); return e === 'concluido' && !i.publicaEm ? 'semData' : e; };
 // ATRASADO: agendado que passou da hora sem ninguém confirmar, ou não publicado / pedido com a data planejada vencida
 const atrasado = i => !!i.publicaEm && i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
@@ -558,12 +573,30 @@ function cardHtml(i, linha) {
   return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${th}<div class="tx">${tx}</div><div class="ac">${acHtml}</div></div>`;
 }
 // na aba Todos, cada faixa separa Shorts de Vídeos longos (17/11/2026)
+const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), feitos = new Set(); return lista.map(i => { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) return cardHtml(i); if (feitos.has(e.ep)) return ''; feitos.add(e.ep); return cardEpHtml(e.ep, l); }).join(''); };
+function cardEpHtml(ep, l) {
+  const ps = l.slice().sort((a, b) => a.e.parte - b.e.parte), maxP = Math.max(...ps.map(p => p.e.parte)), tem = new Set(ps.map(p => p.e.parte)), faltam = []; for (let k = 1; k <= maxP; k++) if (!tem.has(k)) faltam.push(k);
+  const datas = ps.map(p => p.i.publicaEm).filter(Boolean).sort((a, b) => a - b), dia = datas[0], podeMarcar = ps.some(p => !p.i.publicaEm && podeMover(p.i) && ['concluido', 'pedido'].includes(faixaDe(p.i)));
+  const mais = ps.reduce((m, p) => ETAPA_ORD.indexOf(etapaDe(p.i)) < ETAPA_ORD.indexOf(etapaDe(m.i)) ? p : m, ps[0]);
+  const seg = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1); return p ? `<i style="background:${corEtapa(p.i)}"></i>` : '<i class="vz"></i>'; }).join('');
+  const linhas = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1); if (!p) return `<div class="ep-pt vz"><span class="n">Parte ${k + 1}</span><span class="nome">ainda não existe</span></div>`; const et = ETAPAS[etapaDe(p.i)];
+    return `<button class="ep-pt" data-mover="${esc(p.i.id)}" data-tipo="item" title="${esc(p.i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(p.i.titulo)}</span><span class="pil-st" style="--e:${et[1]}">${esc(et[0])}${p.i.publicaEm ? ' · ' + esc(ddmm(p.i.publicaEm)) : ''}</span></button>`; }).join('');
+  return `<div class="card ep-card" style="--c:${corEtapa(mais.i)}" data-ep="${ep}"><div class="tx"><b>Episódio ${ep} · ${ps.length} partes</b><div class="quando">${dia ? 'a primeira sai ' + dataH(dia) : '<span class="pil-sd">Sem data</span>'}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">Marcar dia do episódio</button>` : ''}</div></div>`;
+}
 const cartoesPorFormato = (lista, f) => {
-  if (f !== 'todos' || lista.some(i => i._local)) return lista.map(i => cardHtml(i)).join('');
+  if (f !== 'todos' || lista.some(i => i._local)) return cardsDe(lista);
   const sh = lista.filter(i => formatoDe(i) === 'short'), lo = lista.filter(i => formatoDe(i) !== 'short');
-  if (!sh.length || !lo.length) return lista.map(i => cardHtml(i)).join('');
-  return `<div class="sec-fmt">Shorts</div>${sh.map(i => cardHtml(i)).join('')}<div class="sec-fmt">Vídeos longos</div>${lo.map(i => cardHtml(i)).join('')}`;
+  if (!sh.length || !lo.length) return cardsDe(lista);
+  return `<div class="sec-fmt">Shorts</div>${cardsDe(sh)}<div class="sec-fmt">Vídeos longos</div>${cardsDe(lo)}`;
 };
+// dia do episódio: o da primeira parte que sai; as partes SEM dia ficam com o dia escolhido, as que já têm continuam
+function marcaDiaEp(ep) {
+  const ps = itensTodos().filter(i => { const e = episodioDe(i); return e && e.ep === ep; }), sem = ps.filter(i => !i.publicaEm && podeMover(i) && ['concluido', 'pedido'].includes(faixaDe(i)));
+  if (!sem.length) return toast('Todas as partes já têm dia. Mude o dia de uma parte clicando nela.');
+  const W = janela(`<h3>Dia do Episódio ${ep}</h3><p>As ${sem.length} partes sem dia ficam com este dia. As que já têm dia continuam como estão.</p><div class="pes"><input type="datetime-local" data-em value="${emLocal(Date.now() + 864e5)}" style="flex:1"></div><div class="pes"><button class="bt" data-c>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha;
+  W.J.querySelector('[data-ok]').onclick = async () => { const t = new Date(W.J.querySelector('[data-em]').value).getTime(); if (!t) return toast('Escolha o dia e a hora.'); W.fecha(); let n = 0; for (const i of sem) if (await grava(i, { publicaEm: t })) n++; if (n) toast(`${n} partes ficaram com o dia ${ddmm(t)}.`); };
+}
 const ordem = fx => fx === 'agendado' || fx === 'pedido' ? (a, b) => quando(a) - quando(b) : fx === 'concluido' ? (a, b) => (a.publicaEm || 9e15) - (b.publicaEm || 9e15) || b.enviadoEm - a.enviadoEm : (a, b) => quando(b) - quando(a);
 function pinta() {
   const I = itensTodos().filter(passa), loc = soltos().map(v => ({ ...v, _local: true }));
@@ -584,8 +617,9 @@ function pinta() {
     const f = F.piv, H = I.filter(i => ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
     const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fh') : ''}<b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'} · ${faixaDe(i) === 'noAr' ? 'no ar' : atrasado(i) ? 'atrasado' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje.</div>`}</div>`;
     const IL = DIA ? I.filter(i => dataAgenda(i) && mesmoDia(dataAgenda(i), DIA)) : I; // com um dia escolhido, só os itens dele
+    const EPL = gruposEp(IL), laneOf = i => { const e = episodioDe(i), l = e && EPL.get(e.ep); return l ? l.map(p => laneDe(p.i)).sort((a, b) => ORDEM_LANE.indexOf(a) - ORDEM_LANE.indexOf(b))[0] : laneDe(i); };
     const faixas = FAIXAS.map(([k, n, d]) => {
-      const lista = k === 'local' ? (DIA ? [] : loc).filter(v => fmtOk(formatoLocal(v), f)) : IL.filter(i => fmtOk(formatoDe(i), f) && laneDe(i) === k).sort(ordem(k === 'semData' ? 'concluido' : k));
+      const lista = k === 'local' ? (DIA ? [] : loc).filter(v => fmtOk(formatoLocal(v), f)) : IL.filter(i => fmtOk(formatoDe(i), f) && laneOf(i) === k).sort(ordem(k === 'semData' ? 'concluido' : k));
       if (k === 'local' && !lista.length) return '';
       return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2 data-foco="${k}" title="Ver só ${esc(n)}, organizado por dia e com filtros">${n}<i>${lista.length}</i><span class="sp"></span><span class="abre">ver tudo ›</span></h2><div class="dica">${d}</div><div class="cards">${lista.length ? cartoesPorFormato(lista, f) : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
     }).join('');
@@ -624,7 +658,16 @@ function focoHtml(I, loc) {
 }
 
 // ---------- agenda do mês ----------
+// episódios no calendário: as partes COM dia viram UM evento, no dia da primeira que sai
+function agrupaEpCal(lista, todas = lista) {
+  const G = gruposEp(todas), feitos = new Set(), out = [];
+  for (const i of lista) { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) { out.push(i); continue; } if (feitos.has(e.ep)) continue; feitos.add(e.ep);
+    const ps = l.filter(p => dataAgenda(p.i)).sort((a, b) => dataAgenda(a.i) - dataAgenda(b.i)), mais = l.reduce((m, p) => ETAPA_ORD.indexOf(etapaDe(p.i)) < ETAPA_ORD.indexOf(etapaDe(m.i)) ? p : m, l[0]);
+    out.push({ ...ps[0].i, _ep: e.ep, _nPartes: l.length, _mais: mais.i }); }
+  return out;
+}
 function evHtml(i) {
+  if (i._ep) { const et = ETAPAS[etapaDe(i._mais)]; return `<button class="ev" style="--cc:${et[1]}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}" title="${esc('Episódio ' + i._ep + ' · ' + i._nPartes + ' partes · primeira parte: ' + i.titulo)}">Episódio ${i._ep} <em>${i._nPartes} partes · ${et[0]}</em></button>`; }
   const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr', et = ETAPAS[etapaDe(i)];
   return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
 }
@@ -639,7 +682,7 @@ function calTopoHtml(I, f) {
   if (mes) { const base = new Date(h0.getFullYear(), h0.getMonth() + MESC, 1); ini = new Date(base); ini.setDate(1 - ((base.getDay() + 6) % 7)); fim = new Date(base.getFullYear(), base.getMonth() + 1, 0); total = Math.ceil(((fim - ini) / 864e5 + 1) / 7) * 7; titulo = base.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); titulo = titulo[0].toUpperCase() + titulo.slice(1); }
   else { ini = new Date(h0); ini.setDate(h0.getDate() - ((h0.getDay() + 6) % 7) + SEM * 7); total = MODOCAL * 7; fim = new Date(ini); fim.setDate(ini.getDate() + total - 1); titulo = `${ini.getDate()}${ini.getMonth() !== fim.getMonth() ? ' de ' + ini.toLocaleDateString('pt-BR', { month: 'long' }) : ''} a ${fim.getDate()} de ${fim.toLocaleDateString('pt-BR', { month: 'long' })}`; }
   const mesBase = mes ? new Date(h0.getFullYear(), h0.getMonth() + MESC, 1).getMonth() : -1;
-  const porDia = new Map(); I.filter(i => dataAgenda(i) && fmtOk(formatoDe(i), f)).forEach(i => { const k = new Date(dataAgenda(i)).toDateString(); porDia.set(k, [...(porDia.get(k) || []), i]); });
+  const porDia = new Map(); agrupaEpCal(I.filter(i => dataAgenda(i) && fmtOk(formatoDe(i), f)), I).forEach(i => { const k = new Date(dataAgenda(i)).toDateString(); porDia.set(k, [...(porDia.get(k) || []), i]); });
   const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], passo = mes ? 'um mês' : MODOCAL === 1 ? 'uma semana' : MODOCAL + ' semanas';
   let cel = '';
   for (let k = 0; k < total; k++) { const d = new Date(ini); d.setDate(ini.getDate() + k); const L2 = (porDia.get(d.toDateString()) || []).sort((x, y) => dataAgenda(x) - dataAgenda(y));
@@ -651,7 +694,7 @@ function agendaHtml(I) {
   const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0); base.setMonth(base.getMonth() + MES);
   const ini = new Date(base); ini.setDate(1 - ((base.getDay() + 6) % 7)); // começa na segunda
   const fim = new Date(base.getFullYear(), base.getMonth() + 1, 0), dias = Math.ceil(((fim - ini) / 864e5 + 1) / 7) * 7;
-  const evs = I.filter(i => dataAgenda(i) && (F.agFmt === 'todos' || formatoDe(i) === F.agFmt));
+  const evs = agrupaEpCal(I.filter(i => dataAgenda(i) && (F.agFmt === 'todos' || formatoDe(i) === F.agFmt)), I);
   const porDia = new Map(); evs.forEach(i => { const k = new Date(dataAgenda(i)).toDateString(); porDia.set(k, [...(porDia.get(k) || []), i]); });
   const semana = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
   let cel = semana.map(s => `<div class="sem">${s}</div>`).join('');
@@ -803,6 +846,7 @@ addEventListener('keydown', e => { if (e.key !== 'Escape') return; const m = doc
 document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
+  if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
   if (d.novoDia !== undefined) { novoRoteiroDoDia(+d.novoDia); return; }
   if (d.verDia !== undefined) { alternaDia(+d.verDia); return; }
   if (d.diaTodos !== undefined) { DIA = null; pinta(); return; }

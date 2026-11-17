@@ -313,6 +313,7 @@ html.cel .ep-pt.vz .pil-st.criar{color:var(--acento);font-weight:600}html.cel .e
 html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
 .ep-esc-l{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto;margin:6px 0 10px}
 .ep-esc-i{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--linha,rgba(255,255,255,.1));border-radius:8px;background:var(--fundo-2,transparent);color:var(--texto,inherit);font:inherit;cursor:pointer}
+.ep-pt .pil-st.falta{color:var(--aviso,#f0a30a)}.ep-pt .pil-st.falta::before{display:none}
 .ep-esc-l h4{flex:none;margin:8px 0 2px;font-size:12px;font-weight:600;color:var(--texto-3,#888)}
 .ep-esc-i:hover{background:var(--fundo-3,rgba(255,255,255,.08));border-color:var(--linha-forte,rgba(255,255,255,.2))}
 .ep-esc-i .nome{font-weight:600}.ep-esc-i .pil-st{font-size:12px;color:var(--texto-2,#aaa)}
@@ -614,7 +615,7 @@ const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), fei
    - Parte que ainda não existe: escolher um PROJETO DO ANIMADOR (lista da nuvem, com pastas e busca), um cartão que já existe, criar o roteiro, ou marcar "feita por outra pessoa".
    - A detecção olha também os projetos do Animador pelo nome (Episódio N + Parte K); como um episódio costuma ter várias versões (2D, 3D, LEGACY), ela só AVISA quantos parecem a parte; quem liga é a pessoa. */
 const partesDoEp = ep => itensTodos().filter(i => { const e = episodioDe(i); return e && e.ep === ep; });
-const dataDoEp = ep => { const ds = partesDoEp(ep).map(i => dataAgenda(i)).filter(Boolean).sort((a, b) => a - b); return ds[0] || null; };
+const dataDoEp = ep => { const ds = partesDoEp(ep).map(i => dataAgenda(i) || i.publicaEm).filter(Boolean).sort((a, b) => a - b); return ds[0] || null; };
 const NOME_PROJ_RUIM = /legacy|teste|c[oó]pia|anterior|pode apagar/i;
 const PROJ = { lista: null, pastas: null, em: 0, pedindo: null };
 const carregaProj = (forca) => {
@@ -642,7 +643,7 @@ function cardEpHtml(ep, l) {
   projDeFundo(); setTimeout(unificaTodos, 1200);
   const ps = l.slice().sort((a, b) => a.e.parte - b.e.parte), maxP = Math.max(...ps.map(p => p.e.parte)), tem = new Set(ps.map(p => p.e.parte)), faltam = []; for (let k = 1; k <= maxP; k++) if (!tem.has(k)) faltam.push(k);
   const dia = dataDoEp(ep), podeMarcar = ps.some(p => podeMover(p.i) && ['concluido', 'pedido', 'agendado'].includes(faixaDe(p.i)));
-  const atr = ps.some(p => atrasado(p.i)), arrasta = ps.some(p => podeMover(p.i) && faixaDe(p.i) !== 'noAr');
+  const atr = ps.some(p => atrasado(p.i)), arrasta = ps.some(p => podeMover(p.i) && (faixaDe(p.i) !== 'noAr' || p.i.semLink));
   const mais = ps.reduce((m, p) => ETAPA_ORD.indexOf(etapaDe(p.i)) < ETAPA_ORD.indexOf(etapaDe(m.i)) ? p : m, ps[0]);
   const seg = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1); return p ? `<i style="background:${corEtapa(p.i)}"></i>` : '<i class="vz"></i>'; }).join('');
   const linhas = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1);
@@ -651,9 +652,10 @@ function cardEpHtml(ep, l) {
     const menu = [`<button class="lk" data-mover="${esc(i.id)}" data-tipo="item">Abrir / mover só esta parte…</button>`,
       mov ? `<button class="lk" data-proj-item="${esc(i.id)}">Escolher projeto do Animador…</button>` : '',
       mov && ['concluido', 'pedido', 'agendado'].includes(fx) ? `<button class="lk" data-ep-dia="${ep}">Mudar a data do episódio</button>` : '',
-      fx === 'concluido' && i.abrir ? `<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>` : '',
+      (fx === 'concluido' || i.semLink) && i.abrir ? `<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>` : '',
+      i.semLink && mov && ['agendado', 'naoListado', 'noAr'].includes(fx) ? `<button class="lk" data-ep-links="${esc(i.id)}">Colar o link do YouTube…</button>` : '',
       `<button class="lk" data-ep-sep="${esc(i.id)}" title="Esta parte deixa de aparecer dentro do episódio e passa a ter a data dela">Separar deste episódio</button>`].join('');
-    return `<div class="ep-pt" data-id="${esc(i.id)}" data-tipo="item"${mov && fx !== 'noAr' ? ` draggable="true" data-ep-arr="${ep}"` : ''}><button class="ep-ab" data-mover="${esc(i.id)}" data-tipo="item" title="Abrir a Parte ${k + 1}: ${esc(i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(i.titulo)}</span><span class="pil-st" style="--e:${et[1]}">${esc(et[0])}</span></button><button class="lk mais-bt" data-mais title="Mais ações da Parte ${k + 1}" aria-label="Mais ações da Parte ${k + 1}">⋯</button><div class="mm-src" hidden>${menu}</div></div>`; }).join('');
+    return `<div class="ep-pt" data-id="${esc(i.id)}" data-tipo="item"${mov && (fx !== 'noAr' || i.semLink) ? ` draggable="true" data-ep-arr="${ep}"` : ''}><button class="ep-ab" data-mover="${esc(i.id)}" data-tipo="item" title="Abrir a Parte ${k + 1}: ${esc(i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(i.titulo)}</span><span class="pil-st" style="--e:${et[1]}">${esc(et[0])}</span>${i.semLink && ['agendado', 'naoListado', 'noAr'].includes(fx) ? '<span class="pil-st falta">falta o link</span>' : ''}</button><button class="lk mais-bt" data-mais title="Mais ações da Parte ${k + 1}" aria-label="Mais ações da Parte ${k + 1}">⋯</button><div class="mm-src" hidden>${menu}</div></div>`; }).join('');
   const quando = dia ? (atr ? 'o episódio era para sair ' : 'o episódio sai ') + dataH(dia) : '<span class="pil-sd">Sem data</span>';
   return `<div class="card ep-card${atr ? ' atr' : ''}" style="--c:${atr ? 'var(--atr)' : corEtapa(mais.i)}" data-ep="${ep}"${arrasta ? ` draggable="true" data-ep-arr="${ep}"` : ''}><div class="tx">${atr ? '<span class="selo-atr">atrasado</span>' : ''}<b>Episódio ${ep} · ${faltam.length ? ps.length + ' de ' + maxP : ps.length} partes</b><div class="quando">${quando}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">${dia ? 'Mudar a data do episódio' : 'Marcar dia do episódio'}</button>` : ''}</div></div>`;
 }
@@ -898,9 +900,48 @@ async function moverEp(ep, alvo) {
     const faz = mov.filter(i => dataAgenda(i) !== +d); if (!faz.length) return;
     let n = 0; for (const i of faz) if (await grava(i, { publicaEm: +d })) n++; if (n) toast(`Episódio ${ep}: ${n > 1 ? 'as ' + n + ' partes' : 'a parte'} ${n > 1 ? 'ficaram' : 'ficou'} em ${dataH(+d)}.`); return;
   }
-  if (alvo.faixa === 'semData') { const c = ps.filter(i => faixaDe(i) === 'concluido' && i.publicaEm); if (!c.length) return toast('Só as partes prontas (não publicadas) ficam sem data.'); let n = 0; for (const i of c) if (await grava(i, { publicaEm: null })) n++; if (n) toast(`Episódio ${ep}: ${n} parte${n > 1 ? 's' : ''} sem data.`); return; }
-  if (alvo.faixa === 'concluido') { if (ps.some(i => !i.publicaEm && faixaDe(i) === 'concluido')) return marcaDiaEp(ep); return; }
-  toast('Para agendar ou publicar, abra cada parte (clique nela): cada vídeo tem o seu arquivo e o seu link.');
+  if (alvo.faixa) return moveEpParaFaixa(ep, ps, alvo.faixa);
+}
+/* O EPISÓDIO VAI INTEIRO PARA QUALQUER COLUNA (pedido da dona, 17/11/2026): nada bloqueia o arrasto. Cada parte ganha a situação da coluna e continua com a data do episódio.
+   A parte que ainda não tem o vídeo no YouTube fica como "sem link" (semLink: guarda o projeto/arquivo e a data); DEPOIS do movimento pergunta, sem obrigar, se a pessoa quer colar os links. */
+function pedeDataEp(ep, coluna) {
+  return new Promise(ok => { let t = 0;
+    const W = janela(`<h3>Data do Episódio ${ep}</h3><p>Para ir para ${esc(coluna)} o episódio precisa de um dia e uma hora (uma data só, para todas as partes).</p><div class="pes"><input type="datetime-local" data-em value="${emLocal(Date.now() + 864e5)}" style="flex:1"></div><div class="pes"><button class="bt" data-c>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>`);
+    W.aoFechar(() => ok(t || null)); W.J.querySelector('[data-c]').onclick = W.fecha;
+    W.J.querySelector('[data-ok]').onclick = () => { const v = new Date(W.J.querySelector('[data-em]').value).getTime(); if (!(v > Date.now() + 60e3)) return toast('Escolha um dia e uma hora no futuro.'); t = v; W.fecha(); }; });
+}
+async function moveEpParaFaixa(ep, ps, faixa) {
+  let t = dataDoEp(ep);
+  if (faixa === 'agendado' && !(t && t > Date.now() + 60e3)) { t = await pedeDataEp(ep, 'Agendados'); if (!t) return; }
+  const modo = { agendado: 'agendado', naoListado: 'naoListado', noAr: 'agora' }[faixa], priv = { agendado: 'private', naoListado: 'unlisted', noAr: 'public' }[faixa], feitos = [], presas = [];
+  for (const i of ps) {
+    const fx = faixaDe(i), real = !['concluido', 'pedido'].includes(fx) && !i.semLink; // já é um vídeo do YouTube de verdade
+    if (real && ['semData', 'concluido', 'pedido'].includes(faixa)) { presas.push(i); continue; } // vídeo que já está no YouTube não volta para "não publicado"
+    let m;
+    if (faixa === 'semData') m = { concluido: true, pedido: false, semLink: false, publicaEm: null };
+    else if (faixa === 'concluido') m = { concluido: true, pedido: false, semLink: false, ...(t ? { publicaEm: t } : {}) };
+    else if (faixa === 'pedido') m = { pedido: true, concluido: false, semLink: true, publicaEm: t || null };
+    else if (real) m = { modo, privacidade: priv, confirmadoEm: faixa === 'noAr' ? i.confirmadoEm || Date.now() : null, publicaEm: t || i.publicaEm || null };
+    else m = { concluido: false, pedido: false, semLink: true, modo, privacidade: priv, confirmadoEm: faixa === 'noAr' ? Date.now() : null, publicaEm: t || i.publicaEm || null };
+    if (await grava(i, m)) feitos.push(i);
+  }
+  if (feitos.length) toast(`Episódio ${ep}: ${feitos.length > 1 ? 'as ' + feitos.length + ' partes foram' : 'a parte foi'} para ${NOMEF[faixa]}${t ? ' (' + dataH(t) + ')' : ''}.${presas.length ? ' ' + presas.length + ' já ' + (presas.length > 1 ? 'estão' : 'está') + ' no YouTube e ' + (presas.length > 1 ? 'ficaram' : 'ficou') + ' onde ' + (presas.length > 1 ? 'estavam' : 'estava') + '.' : ''}`);
+  else if (presas.length) toast('Essas partes já estão no YouTube e não voltam para "não publicado".');
+  if (faixa === 'concluido' && !t && feitos.length) marcaDiaEp(ep);
+  if (['agendado', 'naoListado', 'noAr'].includes(faixa)) setTimeout(() => pedeLinksEp(ep), 600); // depois, sem obrigar
+}
+// "Quer colar os links agora?": um campo por parte que ainda não tem o link do YouTube; "Depois" fecha sem mudar nada
+function pedeLinksEp(ep, soIds) {
+  const sem = partesDoEp(ep).filter(i => i.semLink && podeMover(i) && (!soIds || soIds.includes(i.id))).sort((a, b) => (episodioDe(a)?.parte || 0) - (episodioDe(b)?.parte || 0));
+  if (!sem.length) return;
+  const W = janela(`<h3>Quer colar os links agora?</h3><p class="nota">O Episódio ${ep} já está na coluna. Falta o link do YouTube de ${sem.length > 1 ? 'cada parte' : 'esta parte'}: cole agora ou deixe para depois (a parte fica com "falta o link").</p>${sem.map(i => `<label class="r">Parte ${episodioDe(i)?.parte || '?'} · ${esc(i.titulo)}</label><input type="text" data-lk="${esc(i.id)}" placeholder="https://youtu.be/…" style="width:100%">`).join('')}<div class="erro" data-er hidden></div><div class="pes"><button class="bt" data-c>Depois</button><button class="bt pri" data-ok>Salvar os links</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha;
+  W.J.querySelector('[data-ok]').onclick = async () => { const er = W.J.querySelector('[data-er]'); er.hidden = true; const fi = []; let ruim = '';
+    for (const inp of W.J.querySelectorAll('[data-lk]')) { const v = inp.value.trim(); if (!v) continue; const id = idDoLink(v); if (!id) { ruim = 'Esse link não parece ser do YouTube: ' + v; break; } fi.push([inp.dataset.lk, id]); }
+    if (ruim) { er.textContent = ruim; er.hidden = false; return; } if (!fi.length) return W.fecha();
+    W.fecha(); let n = 0;
+    for (const [antigo, id] of fi) { const i = L.itens.find(x => x.id === antigo); if (!i) continue; const { meu, por, semLink, thumb, ...b } = paraNuvem(i); try { await salvaItem({ ...b, id, via: 'studio', semLink: undefined }, antigo); n++; } catch (er2) { toast('Não consegui gravar o link: ' + er2.message, '#ff6b5b'); } }
+    if (n) toast(`${n} link${n > 1 ? 's' : ''} gravado${n > 1 ? 's' : ''}.`); };
 }
 
 // grava a mudança de organização (formato, canal, data, situação) de um item da equipe
@@ -1007,6 +1048,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
   if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
+  if (d.epLinks !== undefined) { const i = itensTodos().find(x => x.id === d.epLinks), e = i && episodioDe(i); if (e) pedeLinksEp(e.ep, [i.id]); return; }
   if (d.projItem !== undefined) { const i = itensTodos().find(x => x.id === d.projItem); if (i) escolheProjeto({ item: i }); return; }
   if (d.epSep !== undefined) { const i = itensTodos().find(x => x.id === d.epSep); if (!i) return; if (i.ep && podeMover(i)) { await grava(i, { ep: null }, 'A parte saiu do episódio.'); return; } try { const m = epManual(); m[prepIdDe(i) || i.id] = null; localStorage.setItem('ep-episodios-manual', JSON.stringify(m)); } catch { } toast('A parte saiu do episódio (só neste navegador).'); pinta(); return; }
   if (d.epCria !== undefined) { const ep = +d.epCria, k = +d.parte, ps = itensTodos().map(i => ({ i, e: episodioDe(i) })).filter(x => x.e && x.e.ep === ep).sort((a, b) => a.e.parte - b.e.parte), nome = nomeDaParte(ps, ep, k);

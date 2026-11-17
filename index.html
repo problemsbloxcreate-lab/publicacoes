@@ -598,7 +598,7 @@ function cardHtml(i, linha) {
 const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), feitos = new Set(); return lista.map(i => { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) return cardHtml(i); if (feitos.has(e.ep)) return ''; feitos.add(e.ep); return cardEpHtml(e.ep, l); }).join(''); };
 /* CARTÃO DO EPISÓDIO (pedido da dona, 17/11/2026): arrasta como os outros (o episódio todo); cada "Parte N" é clicável (abre o mesmo painel dos outros cartões),
    tem o ⋯ (abrir/mover só esta parte, Marcar dia, Separar deste episódio) e arrasta sozinha; "ainda não existe" oferece criar a parte já com o nome; passou do dia e não saiu = atrasado. */
-const nomeDaParte = (ps, ep, k) => { const base = String((ps[0] && ps[0].i.titulo) || ''), re = /\b(parte|part|pt|p)(\s*\.?\s*)(\d{1,2})\b/i; return re.test(base) && /\d/.test(base) ? base.replace(re, (m, a, b) => a + b + k) : 'Episódio ' + ep + ' - Parte ' + k; };
+const nomeDaParte = (ps, ep, k) => { const base = String((ps[0] && ps[0].i.titulo) || ''), re = /\b(parte|part|pt|p)(\s*\.?\s*)(\d{1,2})\b/i, m = re.exec(base); /* só até o número da parte: o que vem depois ("— Portão (3D)") é o subtítulo da outra parte */ return m ? base.slice(0, m.index) + m[1] + m[2] + k : 'Episódio ' + ep + ' - Parte ' + k; };
 function cardEpHtml(ep, l) {
   const ps = l.slice().sort((a, b) => a.e.parte - b.e.parte), maxP = Math.max(...ps.map(p => p.e.parte)), tem = new Set(ps.map(p => p.e.parte)), faltam = []; for (let k = 1; k <= maxP; k++) if (!tem.has(k)) faltam.push(k);
   const datas = ps.map(p => p.i.publicaEm).filter(Boolean).sort((a, b) => a - b), dia = datas[0], podeMarcar = ps.some(p => !p.i.publicaEm && podeMover(p.i) && ['concluido', 'pedido'].includes(faixaDe(p.i)));

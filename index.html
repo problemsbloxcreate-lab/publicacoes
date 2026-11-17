@@ -276,7 +276,9 @@ html.cel .cal-dia{min-height:calc(190px - var(--nsem,2) * 22px);padding:var(--e2
 html.cel .cal-dia{position:relative;cursor:pointer}
 html.cel .cal-dia.sel{background:var(--acento-suave);border-color:var(--acento)}
 html.cel .cal-dia .n{display:flex;align-items:baseline;gap:4px}
-.cal-mais{margin-left:auto;align-self:center;width:22px;height:22px;border:0;border-radius:6px;background:rgba(92,196,255,.16);color:#5cc4ff;font:700 15px/1 system-ui;cursor:pointer;opacity:0;transition:opacity .15s}
+.cal-mais{margin-left:auto;align-self:center;display:grid;place-items:center;padding:0;width:22px;height:22px;border:0;border-radius:6px;background:rgba(92,196,255,.16);color:#5cc4ff;cursor:pointer;opacity:0;transition:opacity .15s}
+/* o + é um DESENHO (SVG de viewBox simétrico) centralizado pela caixa, nunca um caractere de fonte (que fica deslocado) */
+.cal-mais svg{display:block;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 .cal-dia:hover .cal-mais,.cal-mais:focus-visible{opacity:1}
 @media (hover:none){.cal-mais{opacity:.55}}
 html.cel .cal-mais{background:var(--acento-suave);color:var(--acento)}
@@ -826,7 +828,7 @@ function calTopoHtml(I, f) {
   const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], passo = mes ? 'um mês' : MODOCAL === 1 ? 'uma semana' : MODOCAL + ' semanas';
   let cel = '';
   for (let k = 0; k < total; k++) { const d = new Date(ini); d.setDate(ini.getDate() + k); const L2 = (porDia.get(d.toDateString()) || []).sort((x, y) => dataAgenda(x) - dataAgenda(y));
-    cel += `<div class="dia cal-dia${mesmoDia(d, Date.now()) ? ' hj' : ''}${mes && d.getMonth() !== mesBase ? ' fora' : ''}${DIA && mesmoDia(d, DIA) ? ' sel' : ''}" data-dia="${+d}" title="Clique para ver só este dia · botão direito: mais opções"><div class="n"><span>${nomes[k % 7]}</span> ${d.getDate()}<button class="cal-mais" data-novo-dia="${+d}" title="Novo roteiro para ${ddmm(d)}" aria-label="Novo roteiro para ${ddmm(d)}">+</button></div>${L2.map(evHtml).join('')}</div>`; }
+    cel += `<div class="dia cal-dia${mesmoDia(d, Date.now()) ? ' hj' : ''}${mes && d.getMonth() !== mesBase ? ' fora' : ''}${DIA && mesmoDia(d, DIA) ? ' sel' : ''}" data-dia="${+d}" title="Clique para ver só este dia · botão direito: mais opções"><div class="n"><span>${nomes[k % 7]}</span> ${d.getDate()}<button class="cal-mais" data-novo-dia="${+d}" title="Novo roteiro para ${ddmm(d)}" aria-label="Novo roteiro para ${ddmm(d)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>${L2.map(evHtml).join('')}</div>`; }
   const desloc = mes ? MESC : SEM;
   return `<section class="cal-topo" aria-label="Calendário"><div class="cal-cab"><button class="bt sm ic" data-sem="-1" aria-label="Voltar ${passo}" title="Voltar ${passo}">‹</button><h2>${titulo}</h2><button class="bt sm ic" data-sem="1" aria-label="Avançar ${passo}" title="Avançar ${passo}">›</button>${desloc ? '<button class="lk" data-sem="0">hoje</button>' : ''}<span class="sp"></span><span class="lgs">${legEtapas()}</span><div class="seg cal-nsem" role="group" aria-label="O que mostrar no calendário">${[['mes', 'Mês inteiro'], [1, '1 sem.'], [2, '2 sem.'], [3, '3 sem.'], [4, '4 sem.']].map(([n, t]) => `<button data-nsem="${n}" class="${n === MODOCAL ? 'on' : ''}" title="${n === 'mes' ? 'Mostrar o mês inteiro' : n === 1 ? 'Mostrar 1 semana' : 'Mostrar ' + n + ' semanas'}">${t}</button>`).join('')}</div></div><div class="mes cal-mes" style="--nsem:${total / 7}">${cel}</div><div class="cal-rod">arraste um cartão de baixo para um dia · clique num evento para abrir</div></section>`;
 }

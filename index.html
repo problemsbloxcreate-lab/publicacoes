@@ -189,6 +189,11 @@ textarea{height:auto;min-height:90px;padding:6px 8px;resize:vertical}
 <style>
 /* embutido no Preparativos (17/11/2026) */
 html.inc .top .logo,html.inc .top [data-estudio-conta],html.inc .top .tema-bt{display:none!important}
+/* SÓ O CALENDÁRIO (?so=cal, aberto pelo relógio/calendário do menu; pedido da dona, 17/11/2026): só olhar; clicar leva ao Preparativos */
+html.so-cal .top,html.so-cal .filtros,html.so-cal #avisos>:not(.erro),html.so-cal .rod,html.so-cal #area>:not(.cal-topo),html.so-cal .cal-mais{display:none!important}
+html.so-cal body{background:transparent!important}html.so-cal #area{padding-top:0!important;margin-top:0!important}
+html.so-cal .ev{cursor:pointer!important}
+.pisca-ir{outline:3px solid var(--acento,#5cc4ff)!important;outline-offset:2px;animation:piscaIr 1.2s ease-in-out 2}@keyframes piscaIr{50%{outline-color:transparent}}html.so-cal .cal-dia{cursor:pointer}
 html.inc .top{position:static!important;border-bottom:0!important;background:transparent!important;backdrop-filter:none!important;padding-top:12px!important}
 .pil-st{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font-size:12px;color:#a8a8a8}.pil-st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--e,#8a8f9a)}
 .lgs{display:inline-flex;gap:12px;flex-wrap:wrap}.lg-et{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#a8a8a8}.lg-et::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--e)}
@@ -1208,6 +1213,23 @@ async function comeca() {
   addEventListener('storage', e => { if (e.key === LS) { try { L = JSON.parse(e.newValue) || L; } catch { } pinta(); } });
   window.EstudioConta?.espaco?.registrar({ programa: 'Publicações', async listar() { return ESP.map(v => ({ nome: v.titulo || v.nome, bytes: v.blob?.size || 0, data: v.em, rotuloBaixar: 'Baixar o vídeo', baixar: async () => baixar(v.blob, v.nome), apagar: async () => { await YT.fila.tira(v.id); carregaLocais(); } })); } });
 }
+/* SÓ O CALENDÁRIO / ABRIR NUM DIA (pedido da dona, 17/11/2026). ?so=cal: o menu mostra só o calendário, para olhar; clicar num item ou
+   num dia avisa o menu (postMessage 'abrir-pub'), que leva ao Preparativos › Publicações. ?dia=<ms> escolhe o dia; ?item=<id> escolhe o dia
+   do item e destaca o cartão dele. */
+(() => { const q = new URLSearchParams(location.search), H = document.documentElement;
+  if (q.get('so') === 'cal' && top !== self) { H.classList.add('so-cal');
+    const avisa = o => { try { parent.postMessage({ ep: 'abrir-pub', ...o }, location.origin); } catch { } };
+    document.addEventListener('click', e => { if (e.target.closest('.cal-cab')) return; const ev = e.target.closest('.ev'), dia = e.target.closest('.cal-dia');
+      if (!ev && !dia) return; e.preventDefault(); e.stopImmediatePropagation(); avisa(ev ? { item: ev.dataset.id || ev.dataset.mover, dia: dia ? +dia.dataset.dia : 0 } : { dia: +dia.dataset.dia }); }, true);
+    for (const t of ['contextmenu', 'dragstart', 'touchstart']) document.addEventListener(t, e => { if (e.target.closest('.cal-dia')) { e.stopImmediatePropagation(); if (t !== 'touchstart') e.preventDefault(); } }, { capture: true, passive: t === 'touchstart' });
+  }
+  const dia = +q.get('dia') || 0, item = q.get('item') || '';
+  if (dia) { const d0 = new Date(dia); d0.setHours(0, 0, 0, 0); DIA = +d0; const h0 = new Date(); MESC = (d0.getFullYear() - h0.getFullYear()) * 12 + d0.getMonth() - h0.getMonth(); }
+  if (item) { let n = 0; const acha = () => { const i = itensTodos().find(x => x.id === item), el = document.querySelector('.quadro [data-mover="' + CSS.escape(item) + '"], .quadro [data-id="' + CSS.escape(item) + '"]');
+      if (i && !dia && dataAgenda(i) && !DIA) { const d0 = new Date(dataAgenda(i)); d0.setHours(0, 0, 0, 0); DIA = +d0; pinta(); return setTimeout(acha, 200); }
+      if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('pisca-ir'); setTimeout(() => el.classList.remove('pisca-ir'), 2600); return; }
+      if (++n < 40) setTimeout(acha, 250); }; setTimeout(acha, 300); }
+})();
 comeca();
 </script>
 <script src="/estudio-conta.js" defer></script>

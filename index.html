@@ -190,8 +190,9 @@ textarea{height:auto;min-height:90px;padding:6px 8px;resize:vertical}
 /* embutido no Preparativos (17/11/2026) */
 html.inc .top .logo,html.inc .top [data-estudio-conta],html.inc .top .tema-bt{display:none!important}
 html.inc .top{position:static!important;border-bottom:0!important;background:transparent!important;backdrop-filter:none!important;padding-top:12px!important}
-.pil-st{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font-size:12px;color:#a8a8a8}.pil-st::before{content:"";width:7px;height:7px;border-radius:50%;background:#8a8f9a}
-.pil-st.gravando::before{background:#fa6800}.pil-st.pronto::before{background:#60a917}
+.pil-st{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font-size:12px;color:#a8a8a8}.pil-st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--e,#8a8f9a)}
+.lgs{display:inline-flex;gap:12px;flex-wrap:wrap}.lg-et{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#a8a8a8}.lg-et::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--e)}
+.cal-topo{padding:0 clamp(16px,4vw,56px)}
 /* SEM DATA (17/11/2026) */
 :root{--semData:#1ba1e2}
 .sec-fmt{font:600 11px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--mu2);margin:8px 0 2px}
@@ -253,6 +254,21 @@ html.cel{--semData:var(--acento)}
 html.cel .sec-fmt{font-family:var(--fonte);color:var(--texto-3)}
 html.cel .pil-sd{background:var(--acento-suave);color:var(--acento-link,var(--acento));border-radius:var(--raio-p)}
 html.cel .faixa[data-faixa=semData]{background:var(--acento-suave);border-radius:var(--raio-cartao);padding:10px 10px 4px}
+html.cel .faixa .cards>*{flex:none}
+html.cel .cal-topo{margin:var(--e4) clamp(16px,3vw,32px) var(--e2);padding:var(--e4);background:var(--fundo-2);border:1px solid var(--linha);border-radius:var(--raio-cartao)}
+html.cel .cal-cab{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap}.cal-cab .sp{flex:1}
+html.cel .cal-cab h2{margin:0;font:700 var(--t-titulo)/1.2 var(--fonte);text-transform:none}
+html.cel .cal-mes{margin-top:var(--e3);gap:var(--e2)}
+html.cel .cal-dia{min-height:112px;padding:var(--e2);background:var(--fundo);border:1px solid var(--linha);border-radius:10px;display:flex;flex-direction:column;gap:6px}
+html.cel .cal-dia.hj{outline:0;border-color:var(--acento);box-shadow:0 0 0 1px var(--acento) inset}
+html.cel .cal-dia .n{padding:0;font:700 18px/1 var(--fonte);color:var(--texto)}html.cel .cal-dia .n span{font:500 12px var(--fonte);text-transform:uppercase;letter-spacing:.04em;color:var(--texto-3);margin-right:4px}
+html.cel .cal-dia.hj .n{color:var(--acento)}
+html.cel .cal-dia.alvo{background:var(--acento-suave);border-color:var(--acento)}
+html.cel .cal-dia .ev{white-space:normal;line-height:1.25;padding:5px 7px;border-left-width:4px;border-radius:6px}
+html.cel .cal-dia .ev em{display:block;margin-top:2px}
+html.cel .ev{background:color-mix(in srgb,var(--cc,#777) 16%,var(--fundo-2))}html.cel .ev:hover{background:color-mix(in srgb,var(--cc,#777) 26%,var(--fundo-2))}
+html.cel .lg-et,html.cel .cal-rod{font-family:var(--fonte);color:var(--texto-2)}html.cel .cal-rod{margin-top:var(--e3);font-size:var(--t-legenda);color:var(--texto-3)}
+@media (max-width:760px){html.cel .cal-mes{grid-template-columns:repeat(2,minmax(0,1fr))}}
 html.cel .card .th.sem-img{aspect-ratio:auto;height:48px;background:repeating-linear-gradient(135deg,var(--fundo-3) 0 8px,var(--fundo-2) 8px 16px)}
 html.cel .mm-pop{background:var(--elevado);border:1px solid var(--linha);border-radius:10px;box-shadow:var(--sombra-2)}
 html.cel .mm-pop .lk{color:var(--texto);border-radius:var(--raio-p)}html.cel .mm-pop .lk:hover{background:var(--acento-suave)}html.cel .mm-pop .ln{color:var(--texto-3)}
@@ -406,12 +422,26 @@ const FAIXAS = [['local', 'Neste navegador', 'Exportados aqui e ainda fora da li
 const NOMEF = Object.fromEntries(FAIXAS.map(([k, n]) => [k, n]));
 // SEM DATA (pedido da dona, 17/11/2026): o não publicado que ainda não tem dia marcado fica numa faixa só dele (o que vem do Preparativos nasce assim).
 // É só um jeito de agrupar: a situação do item continua 'concluido' (faixaDe); a faixa é laneDe.
-// situação (rascunho/gravando/pronto) dos roteiros do Preparativos, vinda da lista dele (guardada para abrir rápido)
-let PREPST = (() => { try { return JSON.parse(localStorage.getItem('ep-publicacoes-prepst') || '{}') || {}; } catch { return {}; } })();
+// CALENDÁRIO POR ETAPA (pedido da dona, 17/11/2026): cada item tem uma etapa, com a sua cor: Ideia (só a ideia) · Roteiro (tem texto) · Com áudio (tem falas gravadas) ·
+// No Animador (um programa está usando o roteiro) · Pronto (roteiro marcado pronto, ou já exportado/pronto para postar). Os dados do roteiro vêm da lista do Preparativos (GET /preparativos).
+const ETAPAS = { ideia: ['Ideia', '#8e8e93'], roteiro: ['Roteiro', '#af7bff'], audio: ['Com áudio', '#ff9f0a'], anim: ['No Animador', '#5cc4ff'], pronto: ['Pronto', '#30d158'] };
+let PREPST = (() => { try { const v = JSON.parse(localStorage.getItem('ep-publicacoes-prepst') || '{}') || {}; for (const k in v) if (typeof v[k] === 'string') v[k] = { st: v[k], n: 0, g: 0, uso: [] }; return v; } catch { return {}; } })();
+let IDEIAS = (() => { try { return JSON.parse(localStorage.getItem('ep-publicacoes-ideias') || '[]') || []; } catch { return []; } })();
 const prepIdDe = i => (/[?&]id=([A-Za-z0-9_-]+)/.exec(i?.abrir || '') || [])[1] || '';
-const SITN = { rascunho: 'Rascunho', gravando: 'Gravando', pronto: 'Pronto' };
-const chipSit = i => { const st = i.programa === 'preparativos' ? PREPST[prepIdDe(i)] : ''; return st ? `<span class="pil-st ${esc(st)}">${esc(SITN[st] || st)}</span>` : ''; };
-const buscaSit = () => pede('/preparativos').then(r => { const m = {}; for (const x of r.itens || []) m[x.id] = x.status || 'rascunho'; PREPST = m; try { localStorage.setItem('ep-publicacoes-prepst', JSON.stringify(m)); } catch { } pinta(); }).catch(() => { });
+const ehIdeia = i => i?.programa === 'preparativos' && /aba=ideias/.test(i.abrir || '');
+const etapaDe = i => {
+  if (ehIdeia(i)) return 'ideia';
+  if (i.programa === 'preparativos') { const p = PREPST[prepIdDe(i)]; if (!p) return 'roteiro'; if (p.st === 'pronto') return 'pronto'; if ((p.uso || []).length) return 'anim'; if (p.g > 0) return 'audio'; return 'roteiro'; }
+  return 'pronto';
+};
+const corEtapa = i => ETAPAS[etapaDe(i)][1];
+const chipSit = i => { if (!['semData', 'concluido', 'pedido'].includes(laneDe(i))) return ''; const [n, c] = ETAPAS[etapaDe(i)]; return `<span class="pil-st" style="--e:${c}">${esc(n)}</span>`; };
+const legEtapas = () => Object.values(ETAPAS).map(([n, c]) => `<span class="lg-et" style="--e:${c}">${esc(n)}</span>`).join('');
+const buscaSit = () => pede('/preparativos').then(r => { const m = {}; for (const x of r.itens || []) m[x.id] = { st: x.status || 'rascunho', n: x.n || 0, g: x.g || 0, uso: x.uso || [] }; PREPST = m; try { localStorage.setItem('ep-publicacoes-prepst', JSON.stringify(m)); } catch { } pinta(); }).catch(() => { });
+// as ideias da aba Ideias do Preparativos entram como cartão "Ideia", sem data; ao marcar um dia viram um item de verdade (id pi<ideia>)
+const buscaIdeias = () => pede('/ideias').then(r => { IDEIAS = ((r.ideias || {}).lista || []).filter(x => x?.titulo && x.id).map(x => ({ id: x.id, titulo: String(x.titulo), formato: x.formato === 'longo' ? 'longo' : 'short' })); try { localStorage.setItem('ep-publicacoes-ideias', JSON.stringify(IDEIAS)); } catch { } pinta(); }).catch(() => { });
+const ideiaItem = x => ({ id: 'pi' + String(x.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 17), titulo: x.titulo.slice(0, 100), concluido: true, programa: 'preparativos', abrir: '/preparativos/?aba=ideias', formato: x.formato, canal: { id: '', nome: '' }, modo: 'naoListado', privacidade: 'unlisted', enviadoEm: Date.now(), publicaEm: null, _ideia: true });
+const itensTodos = () => { const reais = L.itens || [], ids = new Set(reais.map(i => i.id)); return [...reais, ...IDEIAS.map(ideiaItem).filter(v => !ids.has(v.id))]; };
 const laneDe = i => { const e = faixaDe(i); return e === 'concluido' && !i.publicaEm ? 'semData' : e; };
 // ATRASADO: agendado que passou da hora sem ninguém confirmar, ou não publicado / pedido com a data planejada vencida
 const atrasado = i => !!i.publicaEm && i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
@@ -425,7 +455,7 @@ const pede = async (caminho, op = {}) => {
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error?.message || `A nuvem respondeu ${r.status}.`); return j;
 };
 let buscando = null, erroNuvem = '';
-const buscar = forca => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; if ((v.itens || []).some(i => i.programa === 'preparativos')) buscaSit(); }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
+const buscar = forca => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; buscaSit(); buscaIdeias(); }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
 const salvaItem = async (item, substitui) => { guardaL(await pede('/publicacoes', { method: 'POST', body: JSON.stringify({ item, ...(substitui ? { substitui } : {}) }) })); pinta(); };
 // o item como a nuvem quer receber (sem os campos que ela mesma põe)
 const paraNuvem = i => { const { meu, por, ...x } = i; return x; };
@@ -502,10 +532,10 @@ function cardHtml(i, linha) {
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
     if (fx === 'agendado') ac.push(`<button class="lk" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>`);
     if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O ${esc(PROGS[i.programa] || 'programa')} abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
-    if (!real && podePub) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
+    if (!real && podePub && !i._ideia) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
     if (fx === 'concluido' && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
     if (loc) ac.push(`<button class="lk" data-baixa="${esc(loc.id)}">Baixar</button>`);
-    if (i.meu || L.adm) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
+    if ((i.meu || L.adm) && !i._ideia) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
   if (mov) ac.unshift(`<button class="lk" data-mover="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}" style="color:#fff">Mover…</button>`);
   // CARTÃO LIMPO (17/11/2026): fica à vista só o que se usa toda hora; o resto (e quem enviou/mexeu) vai para o menu ⋯
@@ -527,7 +557,7 @@ const cartoesPorFormato = (lista, f) => {
 };
 const ordem = fx => fx === 'agendado' || fx === 'pedido' ? (a, b) => quando(a) - quando(b) : fx === 'concluido' ? (a, b) => (a.publicaEm || 9e15) - (b.publicaEm || 9e15) || b.enviadoEm - a.enviadoEm : (a, b) => quando(b) - quando(a);
 function pinta() {
-  const I = (L.itens || []).filter(passa), loc = soltos().map(v => ({ ...v, _local: true }));
+  const I = itensTodos().filter(passa), loc = soltos().map(v => ({ ...v, _local: true }));
   const conta = f => I.filter(i => fmtOk(formatoDe(i), f)).length + loc.filter(v => fmtOk(formatoLocal(v), f)).length;
   $('#pivo').innerHTML = [['todos', 'Todos'], ['short', 'Shorts'], ['longo', 'Vídeos longos'], ['agenda', 'Agenda']].map(([k, n]) => `<button data-piv="${k}" class="${F.piv === k && !F.foco ? 'on' : ''}"${k === 'short' || k === 'longo' ? ` data-alvo-fmt="${k}"` : ''}>${n}${k !== 'agenda' ? `<i>${conta(k)}</i>` : ''}</button>`).join('');
   // filtros
@@ -549,7 +579,7 @@ function pinta() {
       if (k === 'local' && !lista.length) return '';
       return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2 data-foco="${k}" title="Ver só ${esc(n)}, organizado por dia e com filtros">${n}<i>${lista.length}</i><span class="sp"></span><span class="abre">ver tudo ›</span></h2><div class="dica">${d}</div><div class="cards">${lista.length ? cartoesPorFormato(lista, f) : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
     }).join('');
-    $('#area').innerHTML = hoje + `<div class="quadro">${faixas}</div>`;
+    $('#area').innerHTML = calTopoHtml(I, f) + hoje + `<div class="quadro">${faixas}</div>`;
     const q = $('.quadro'); if (q) q.scrollLeft = rolagem;
   }
   $('#rodInfo').textContent = `${(L.itens || []).length} na lista da equipe · ${L.em ? 'atualizada ' + dataH(L.em) : 'ainda não buscada'}${buscando ? ' · buscando…' : ''}`;
@@ -583,6 +613,22 @@ function focoHtml(I, loc) {
 }
 
 // ---------- agenda do mês ----------
+function evHtml(i) {
+  const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr', et = ETAPAS[etapaDe(i)];
+  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
+}
+// CALENDÁRIO NO ALTO (pedido da dona, 17/11/2026): duas semanas grandes, com a cor de cada etapa; arrastar um cartão de baixo para um dia marca a data
+let SEM = 0; // semanas a partir da atual
+function calTopoHtml(I, f) {
+  const h0 = new Date(); h0.setHours(0, 0, 0, 0); const ini = new Date(h0); ini.setDate(h0.getDate() - ((h0.getDay() + 6) % 7) + SEM * 7);
+  const fim = new Date(ini); fim.setDate(ini.getDate() + 13);
+  const porDia = new Map(); I.filter(i => dataAgenda(i) && fmtOk(formatoDe(i), f)).forEach(i => { const k = new Date(dataAgenda(i)).toDateString(); porDia.set(k, [...(porDia.get(k) || []), i]); });
+  const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], titulo = `${ini.getDate()}${ini.getMonth() !== fim.getMonth() ? ' de ' + ini.toLocaleDateString('pt-BR', { month: 'long' }) : ''} a ${fim.getDate()} de ${fim.toLocaleDateString('pt-BR', { month: 'long' })}`;
+  let cel = '';
+  for (let k = 0; k < 14; k++) { const d = new Date(ini); d.setDate(ini.getDate() + k); const L2 = (porDia.get(d.toDateString()) || []).sort((a, b) => dataAgenda(a) - dataAgenda(b));
+    cel += `<div class="dia cal-dia${mesmoDia(d, Date.now()) ? ' hj' : ''}" data-dia="${+d}"><div class="n"><span>${nomes[k % 7]}</span> ${d.getDate()}</div>${L2.map(evHtml).join('')}</div>`; }
+  return `<section class="cal-topo" aria-label="Calendário"><div class="cal-cab"><button class="bt sm ic" data-sem="-1" aria-label="Semanas anteriores">‹</button><h2>${titulo}</h2><button class="bt sm ic" data-sem="1" aria-label="Próximas semanas">›</button>${SEM ? '<button class="lk" data-sem="0">hoje</button>' : ''}<span class="sp"></span><span class="lgs">${legEtapas()}</span><button class="bt sm" data-piv="agenda">Mês inteiro</button></div><div class="mes cal-mes">${cel}</div><div class="cal-rod">arraste um cartão de baixo para um dia · clique num evento para abrir</div></section>`;
+}
 function agendaHtml(I) {
   const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0); base.setMonth(base.getMonth() + MES);
   const ini = new Date(base); ini.setDate(1 - ((base.getDay() + 6) % 7)); // começa na segunda
@@ -594,13 +640,13 @@ function agendaHtml(I) {
   for (let k = 0; k < dias; k++) {
     const d = new Date(ini); d.setDate(ini.getDate() + k);
     const L2 = (porDia.get(d.toDateString()) || []).sort((a, b) => dataAgenda(a) - dataAgenda(b));
-    cel += `<div class="dia${d.getMonth() !== base.getMonth() ? ' fora' : ''}${mesmoDia(d, Date.now()) ? ' hj' : ''}" data-dia="${+d}"><div class="n">${d.getDate()}</div>${L2.map(i => { const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr'; return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corCanal(canalDe(i)?.id)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[fx]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${hora(dataAgenda(i))} ${esc(i.titulo)} ${atrasado(i) ? '<em>atrasado</em>' : fx === 'concluido' || fx === 'pedido' ? '<em>planejado</em>' : fx === 'noAr' ? '<em>no ar</em>' : ''}</button>`; }).join('')}</div>`;
+    cel += `<div class="dia${d.getMonth() !== base.getMonth() ? ' fora' : ''}${mesmoDia(d, Date.now()) ? ' hj' : ''}" data-dia="${+d}"><div class="n">${d.getDate()}</div>${L2.map(evHtml).join('')}</div>`;
   }
   const semData = I.filter(i => ['concluido', 'pedido'].includes(faixaDe(i)) && !i.publicaEm && (F.agFmt === 'todos' || formatoDe(i) === F.agFmt)).length;
   return `<div class="agenda"><div class="ag-cab"><button class="bt sm" data-mes="-1" aria-label="Mês anterior">‹</button><h2>${base.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2><button class="bt sm" data-mes="1" aria-label="Próximo mês">›</button>${MES ? '<button class="lk" data-mes="0">voltar para hoje</button>' : ''}<span class="sp"></span>
     <div class="seg">${[['todos', 'Tudo'], ['short', 'Shorts'], ['longo', 'Vídeos longos']].map(([k, n]) => `<button data-agfmt="${k}" class="${F.agFmt === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>
     <div class="mes">${cel}</div>
-    <div class="legenda">${canaisTodos().map(c => `<span style="--cc:${corCanal(c.id)}">${fotoHtml(c.id, 'fl')}${esc(c.nome)}</span>`).join('')}<span>· arraste para mudar o dia · clique para mover</span>${semData ? `<span>· ${semData} não publicado${semData > 1 ? 's' : ''} sem data planejada</span>` : ''}</div></div>`;
+    <div class="legenda"><span class="lgs">${legEtapas()}</span> ${canaisTodos().map(c => `<span style="--cc:${corCanal(c.id)}">${fotoHtml(c.id, 'fl')}${esc(c.nome)}</span>`).join('')}<span>· arraste para mudar o dia · clique para mover</span>${semData ? `<span>· ${semData} não publicado${semData > 1 ? 's' : ''} sem data planejada</span>` : ''}</div></div>`;
 }
 
 // ---------- arrastar (cartões entre faixas e abas, eventos entre dias) ----------
@@ -615,7 +661,7 @@ function ligaArrastar() {
   $$('[data-alvo-fmt]').forEach(el => alvo(el, a => moverPara(a, { formato: el.dataset.alvoFmt })));
   $$('[data-dia]').forEach(el => alvo(el, a => moverPara(a, { dia: +el.dataset.dia })));
 }
-const acha = a => a.tipo === 'local' ? (() => { const v = ESP.find(x => x.id === a.id); return v ? { ...v, _local: true } : null; })() : L.itens.find(x => x.id === a.id);
+const acha = a => a.tipo === 'local' ? (() => { const v = ESP.find(x => x.id === a.id); return v ? { ...v, _local: true } : null; })() : itensTodos().find(x => x.id === a.id);
 async function moverPara(a, alvo) {
   const i = acha(a); if (!i) return;
   if (i._local) { // vídeo deste navegador
@@ -628,7 +674,7 @@ async function moverPara(a, alvo) {
   const fx = faixaDe(i), real = !['concluido', 'pedido'].includes(fx);
   if (alvo.formato) { if (formatoDe(i) === alvo.formato) return; return grava(i, { formato: alvo.formato }, `Foi para ${alvo.formato === 'short' ? 'Shorts' : 'Vídeos longos'}.`); }
   if (alvo.dia) { // outro dia na agenda: mantém a hora
-    const t0 = dataAgenda(i); if (!t0) return; const d = new Date(alvo.dia), o = new Date(t0); d.setHours(o.getHours(), o.getMinutes(), 0, 0);
+    let t0 = dataAgenda(i); if (!t0) { if (!['concluido', 'pedido'].includes(fx)) return; const d0 = new Date(alvo.dia); d0.setHours(12, 0, 0, 0); return grava(i, { publicaEm: +d0 }, `Planejado para ${dataH(+d0)}.`); } const d = new Date(alvo.dia), o = new Date(t0); d.setHours(o.getHours(), o.getMinutes(), 0, 0);
     if (mesmoDia(d, o)) return;
     if (fx === 'agendado' && +d < Date.now() + 5 * 60e3) return toast('Esse dia já passou: escolha um dia no futuro.');
     return grava(i, { publicaEm: +d }, real ? `Mudou para ${dataH(+d)} no Estúdio. No YouTube, mude também no Studio.` : `Planejado para ${dataH(+d)}.`);
@@ -730,6 +776,7 @@ document.addEventListener('click', async e => {
   else if (d.fseg) { F[d.fseg] = d.v; guardaF(); pinta(); }
   else if (d.piv) { F.piv = d.piv; F.foco = ''; guardaF(); pinta(); }
   else if (d.agfmt) { F.agFmt = d.agfmt; guardaF(); pinta(); }
+  else if (d.sem !== undefined) { SEM = d.sem === '0' ? 0 : SEM + +d.sem; pinta(); }
   else if (d.mes !== undefined) { MES = d.mes === '0' ? 0 : MES + +d.mes; pinta(); }
   else if (d.mover) { const i = acha({ id: d.mover, tipo: d.tipo }); if (i) painelMover(i, null, { data: d.data === '1' }); }
   else if (d.conf) { const i = L.itens.find(x => x.id === d.conf); if (!i || !confirm(`Confirma que "${i.titulo}" já saiu no canal ${canalDe(i)?.nome || ''}?`)) return; grava(i, { privacidade: 'public', modo: 'agora', confirmadoEm: Date.now() }, 'Confirmado: está no ar.'); }
@@ -1005,7 +1052,7 @@ $('#btCanais').onclick = () => {
 async function comeca() {
   await EstudioLogin.pronto;
   if (window.EstudioPerm?.programa?.('publicacoes') === false) { $('#area').innerHTML = '<div class="aviso" style="margin:20px clamp(16px,4vw,56px)">Você ainda não tem acesso ao Publicações. Peça para um ADM liberar.</div>'; return; }
-  pinta(); buscar(false); await carregaLocais();
+  pinta(); buscar(false); buscaSit(); buscaIdeias(); await carregaLocais();
   const q = new URLSearchParams(location.search).get('video');
   if (q) { history.replaceState(null, '', location.pathname); const v = ESP.find(x => x.id === q);
     if (v?.concluir) { try { await organizar(v); } catch (er) { toast('Não consegui pôr em Não publicados: ' + er.message + ' (o vídeo ficou em "Neste navegador").', '#ff6b5b'); } }

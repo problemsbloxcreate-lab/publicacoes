@@ -198,6 +198,8 @@ html.inc .top{position:static!important;border-bottom:0!important;background:tra
 .ep-pt{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:5px 0;border:0;border-top:1px solid rgba(255,255,255,.08);background:none;color:inherit;font:inherit;font-size:12.5px;cursor:pointer;flex-wrap:wrap}
 .ep-pt .n{width:48px;color:#8a8a8a;font-weight:600;flex:none}.ep-pt .nome{flex:1 1 90px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ep-pt.vz{color:#f0a30a;cursor:default}.ep-pt.vz .nome{font-style:italic}
 .ep-pt .pil-st{margin-left:auto}
+.ep-pt .ep-ab{display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}
+.ep-pt .mais-bt{flex:none}.ep-pt.atr .pil-st{color:var(--atr)}.ep-card[draggable=true]{cursor:grab}.ep-pt[draggable=true]{cursor:grab}.ep-card.arrasta,.ep-pt.arrasta{opacity:.4}
 /* SEM DATA (17/11/2026) */
 :root{--semData:#1ba1e2}
 .sec-fmt{font:600 11px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--mu2);margin:8px 0 2px}
@@ -286,6 +288,26 @@ html.cel .lg-et,html.cel .cal-rod{font-family:var(--fonte);color:var(--texto-2)}
 html.cel .card .th.sem-img{aspect-ratio:auto;height:48px;background:repeating-linear-gradient(135deg,var(--fundo-3) 0 8px,var(--fundo-2) 8px 16px)}
 html.cel .mm-pop{background:var(--elevado);border:1px solid var(--linha);border-radius:10px;box-shadow:var(--sombra-2)}
 html.cel .mm-pop .lk{color:var(--texto);border-radius:var(--raio-p)}html.cel .mm-pop .lk:hover{background:var(--acento-suave)}html.cel .mm-pop .ln{color:var(--texto-3)}
+/* partes do episódio: linhas clicáveis (17/11/2026) */
+html.cel .ep-partes{margin:var(--e2) calc(var(--e2) * -1) 0}
+html.cel .ep-pt{border-top:0;border-radius:var(--raio-controle);padding:4px var(--e2);min-height:36px;gap:var(--e2);flex-wrap:nowrap;transition:background var(--rapido,.15s)}
+html.cel .ep-pt:hover{background:var(--fundo-3)}
+html.cel .ep-pt .n{color:var(--texto-3);width:50px}
+html.cel .ep-pt{align-items:flex-start;padding-top:5px;padding-bottom:5px}html.cel .ep-pt .ep-ab{flex-wrap:wrap;row-gap:1px}html.cel .ep-pt .ep-ab .nome{flex:1 1 60px}
+html.cel .ep-pt .ep-ab .pil-st{flex:0 0 100%;margin-left:56px}html.cel .ep-pt.vz{align-items:center}html.cel .ep-pt .mais-bt{margin-top:2px}
+html.cel .ep-pt .ep-ab:focus-visible,html.cel .ep-pt.vz:focus-visible{outline:2px solid var(--acento);outline-offset:2px;border-radius:var(--raio-p)}
+html.cel .ep-pt .nome{color:var(--texto)}
+html.cel .ep-pt .pil-st{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-legenda);color:var(--texto-2);white-space:nowrap}
+html.cel .ep-pt .pil-st::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--e,var(--neutro));flex:none}
+html.cel .ep-pt.atr .pil-st{color:var(--perigo)}
+html.cel .ep-pt .mais-bt{width:28px;height:28px;padding:0;display:grid;place-items:center;border-radius:var(--raio-p);color:var(--texto-2);opacity:.75}
+html.cel .ep-pt:hover .mais-bt,html.cel .ep-pt .mais-bt:focus-visible{opacity:1;background:var(--fundo-4)}
+html.cel .ep-pt.vz{width:100%;border:1px dashed color-mix(in srgb,var(--aviso) 55%,transparent);background:transparent;color:var(--aviso);cursor:pointer;text-align:left;margin:2px 0}
+html.cel .ep-pt.vz:hover{background:color-mix(in srgb,var(--aviso) 10%,transparent)}
+html.cel .ep-pt.vz .pil-st.criar{color:var(--acento);font-weight:600}html.cel .ep-pt.vz .pil-st.criar::before{display:none}
+html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
+html.cel .ep-card .tx{grid-template-columns:minmax(0,1fr)}html.cel .ep-card .ep-partes,html.cel .ep-card .ep-seg{min-width:0}html.cel .ep-pt{min-width:0}
+html.cel .ep-pt.vz{flex-wrap:wrap;row-gap:0}html.cel .ep-pt.vz .nome{white-space:normal;flex:1 1 70px}html.cel .ep-pt.vz .pil-st.criar{margin-left:auto}
 html.cel .faixa>h2 i,html.cel .faixa>h2 .abre{font:400 var(--t-legenda) var(--fonte);color:var(--texto-3)}
 html.cel .faixa>h2[data-foco]:hover{background:var(--fundo-3)}
 html.cel .faixa .dica{color:var(--texto-3)}
@@ -574,14 +596,25 @@ function cardHtml(i, linha) {
 }
 // na aba Todos, cada faixa separa Shorts de Vídeos longos (17/11/2026)
 const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), feitos = new Set(); return lista.map(i => { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) return cardHtml(i); if (feitos.has(e.ep)) return ''; feitos.add(e.ep); return cardEpHtml(e.ep, l); }).join(''); };
+/* CARTÃO DO EPISÓDIO (pedido da dona, 17/11/2026): arrasta como os outros (o episódio todo); cada "Parte N" é clicável (abre o mesmo painel dos outros cartões),
+   tem o ⋯ (abrir/mover só esta parte, Marcar dia, Separar deste episódio) e arrasta sozinha; "ainda não existe" oferece criar a parte já com o nome; passou do dia e não saiu = atrasado. */
+const nomeDaParte = (ps, ep, k) => { const base = String((ps[0] && ps[0].i.titulo) || ''), re = /\b(parte|part|pt|p)(\s*\.?\s*)(\d{1,2})\b/i; return re.test(base) && /\d/.test(base) ? base.replace(re, (m, a, b) => a + b + k) : 'Episódio ' + ep + ' - Parte ' + k; };
 function cardEpHtml(ep, l) {
   const ps = l.slice().sort((a, b) => a.e.parte - b.e.parte), maxP = Math.max(...ps.map(p => p.e.parte)), tem = new Set(ps.map(p => p.e.parte)), faltam = []; for (let k = 1; k <= maxP; k++) if (!tem.has(k)) faltam.push(k);
   const datas = ps.map(p => p.i.publicaEm).filter(Boolean).sort((a, b) => a - b), dia = datas[0], podeMarcar = ps.some(p => !p.i.publicaEm && podeMover(p.i) && ['concluido', 'pedido'].includes(faixaDe(p.i)));
+  const atr = ps.some(p => atrasado(p.i)), arrasta = ps.some(p => podeMover(p.i) && faixaDe(p.i) !== 'noAr');
   const mais = ps.reduce((m, p) => ETAPA_ORD.indexOf(etapaDe(p.i)) < ETAPA_ORD.indexOf(etapaDe(m.i)) ? p : m, ps[0]);
   const seg = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1); return p ? `<i style="background:${corEtapa(p.i)}"></i>` : '<i class="vz"></i>'; }).join('');
-  const linhas = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1); if (!p) return `<div class="ep-pt vz"><span class="n">Parte ${k + 1}</span><span class="nome">ainda não existe</span></div>`; const et = ETAPAS[etapaDe(p.i)];
-    return `<button class="ep-pt" data-mover="${esc(p.i.id)}" data-tipo="item" title="${esc(p.i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(p.i.titulo)}</span><span class="pil-st" style="--e:${et[1]}">${esc(et[0])}${p.i.publicaEm ? ' · ' + esc(ddmm(p.i.publicaEm)) : ''}</span></button>`; }).join('');
-  return `<div class="card ep-card" style="--c:${corEtapa(mais.i)}" data-ep="${ep}"><div class="tx"><b>Episódio ${ep} · ${ps.length} partes</b><div class="quando">${dia ? 'a primeira sai ' + dataH(dia) : '<span class="pil-sd">Sem data</span>'}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">Marcar dia do episódio</button>` : ''}</div></div>`;
+  const linhas = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1);
+    if (!p) return `<button class="ep-pt vz" data-ep-cria="${ep}" data-parte="${k + 1}" title="Criar a Parte ${k + 1} no Preparativos, já com o nome do episódio"><span class="n">Parte ${k + 1}</span><span class="nome">ainda não existe</span><span class="pil-st criar">+ Criar</span></button>`;
+    const i = p.i, et = ETAPAS[etapaDe(i)], mov = podeMover(i), fx = faixaDe(i), atrP = atrasado(i);
+    const menu = [`<button class="lk" data-mover="${esc(i.id)}" data-tipo="item">Abrir / mover só esta parte…</button>`,
+      mov && laneDe(i) === 'semData' ? `<button class="lk" data-mover="${esc(i.id)}" data-tipo="item" data-data="1">Marcar dia desta parte</button>` : '',
+      fx === 'concluido' && i.abrir ? `<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>` : '',
+      `<button class="lk" data-ep-sep="${esc(i.id)}" title="Esta parte deixa de aparecer dentro do episódio (só neste navegador)">Separar deste episódio</button>`].join('');
+    return `<div class="ep-pt${atrP ? ' atr' : ''}" data-id="${esc(i.id)}" data-tipo="item"${mov && fx !== 'noAr' ? ' draggable="true"' : ''}><button class="ep-ab" data-mover="${esc(i.id)}" data-tipo="item" title="Abrir a Parte ${k + 1}: ${esc(i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(i.titulo)}</span><span class="pil-st" style="--e:${atrP ? 'var(--atr)' : et[1]}">${atrP ? 'atrasado' : esc(et[0])}${i.publicaEm ? ' · ' + esc(ddmm(i.publicaEm)) : ''}</span></button><button class="lk mais-bt" data-mais title="Mais ações da Parte ${k + 1}" aria-label="Mais ações da Parte ${k + 1}">⋯</button><div class="mm-src" hidden>${menu}</div></div>`; }).join('');
+  const quando = dia ? (atr ? 'a primeira era para sair ' : 'a primeira sai ') + dataH(dia) : '<span class="pil-sd">Sem data</span>';
+  return `<div class="card ep-card${atr ? ' atr' : ''}" style="--c:${atr ? 'var(--atr)' : corEtapa(mais.i)}" data-ep="${ep}"${arrasta ? ` draggable="true" data-ep-arr="${ep}"` : ''}><div class="tx">${atr ? '<span class="selo-atr">atrasado</span>' : ''}<b>Episódio ${ep} · ${faltam.length ? ps.length + ' de ' + maxP : ps.length} partes</b><div class="quando">${quando}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">Marcar dia do episódio</button>` : ''}</div></div>`;
 }
 const cartoesPorFormato = (lista, f) => {
   if (f !== 'todos' || lista.some(i => i._local)) return cardsDe(lista);
@@ -714,7 +747,7 @@ function agendaHtml(I) {
 let ARR = null;
 function ligaArrastar() {
   $$('[draggable=true]').forEach(el => {
-    el.ondragstart = e => { ARR = { id: el.dataset.id, tipo: el.dataset.tipo }; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', el.dataset.id); } catch { } setTimeout(() => el.classList.add('arrasta'), 0); };
+    el.ondragstart = e => { if (e.target !== el) return; /* a parte dentro do cartão do episódio arrasta sozinha */ ARR = el.dataset.epArr ? { ep: +el.dataset.epArr } : { id: el.dataset.id, tipo: el.dataset.tipo }; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', el.dataset.id || ('ep' + el.dataset.epArr)); } catch { } setTimeout(() => el.classList.add('arrasta'), 0); };
     el.ondragend = () => { el.classList.remove('arrasta'); ARR = null; $$('.alvo').forEach(x => x.classList.remove('alvo')); };
   });
   const alvo = (el, solta) => { el.ondragover = e => { if (!ARR) return; e.preventDefault(); el.classList.add('alvo'); }; el.ondragleave = e => { if (!el.contains(e.relatedTarget)) el.classList.remove('alvo'); }; el.ondrop = e => { e.preventDefault(); el.classList.remove('alvo'); const a = ARR; ARR = null; if (a) solta(a); }; };
@@ -722,8 +755,9 @@ function ligaArrastar() {
   $$('[data-alvo-fmt]').forEach(el => alvo(el, a => moverPara(a, { formato: el.dataset.alvoFmt })));
   $$('[data-dia]').forEach(el => alvo(el, a => moverPara(a, { dia: +el.dataset.dia })));
 }
-const acha = a => a.tipo === 'local' ? (() => { const v = ESP.find(x => x.id === a.id); return v ? { ...v, _local: true } : null; })() : itensTodos().find(x => x.id === a.id);
+const acha = a => a.ep ? null : a.tipo === 'local' ? (() => { const v = ESP.find(x => x.id === a.id); return v ? { ...v, _local: true } : null; })() : itensTodos().find(x => x.id === a.id);
 async function moverPara(a, alvo) {
+  if (a.ep) return moverEp(a.ep, alvo);
   const i = acha(a); if (!i) return;
   if (i._local) { // vídeo deste navegador
     if (alvo.formato) { const v = ESP.find(x => x.id === i.id); v.formato = alvo.formato; try { await YT.fila.poe(v); } catch { } pinta(); return toast(`Foi para ${alvo.formato === 'short' ? 'Shorts' : 'Vídeos longos'}.`); }
@@ -748,6 +782,26 @@ async function moverPara(a, alvo) {
   if (alvo.faixa === 'pedido') { const v = localDe(i); if (!v) return toast('O vídeo não está neste navegador: abra o "Postar…" e escolha o arquivo.'); return publicar(v, null, { via: 'fila' }); }
   if (alvo.faixa === 'concluido') return toast('Um pedido da fila sai pelo "Tirar" (quem pediu) ou é publicado.');
   painelMover(i, alvo.faixa);
+}
+// MOVER O EPISÓDIO INTEIRO (arrastar o cartão do episódio): formato, dia e Sem data valem para todas as partes; as partes mantêm a distância de dias entre elas
+const dia0 = t => { const x = new Date(t); x.setHours(0, 0, 0, 0); return +x; };
+async function moverEp(ep, alvo) {
+  const todas = itensTodos().filter(i => { const e = episodioDe(i); return e && e.ep === ep; }), ps = todas.filter(podeMover);
+  if (!ps.length) return toast('Sua conta não pode organizar este episódio.');
+  if (alvo.formato) { const f = alvo.formato, fa = ps.filter(i => formatoDe(i) !== f); if (!fa.length) return; let n = 0; for (const i of fa) if (await grava(i, { formato: f })) n++; if (n) toast(`O Episódio ${ep} (${n} parte${n > 1 ? 's' : ''}) foi para ${f === 'short' ? 'Shorts' : 'Vídeos longos'}.`); return; }
+  if (alvo.dia) {
+    const mov = ps.filter(i => ['concluido', 'pedido', 'agendado'].includes(faixaDe(i)));
+    if (!mov.length) return toast('Essas partes já estão no YouTube: mude o dia de cada uma clicando nela.');
+    const comData = mov.filter(i => dataAgenda(i)), d0 = comData.length ? Math.min(...comData.map(i => dia0(dataAgenda(i)))) : null, alvoDia = new Date(alvo.dia); alvoDia.setHours(0, 0, 0, 0);
+    const novos = mov.map(i => { const t = dataAgenda(i), d = new Date(alvoDia); if (!t) d.setHours(12, 0, 0, 0); else { const o = new Date(t); d.setDate(d.getDate() + Math.round((dia0(t) - d0) / 864e5)); d.setHours(o.getHours(), o.getMinutes(), 0, 0); } return { i, d: +d }; }).filter(x => !(dataAgenda(x.i) && mesmoDia(x.d, dataAgenda(x.i)) && dia0(x.d) === dia0(dataAgenda(x.i))));
+    if (!novos.length) return;
+    if (novos.some(x => faixaDe(x.i) === 'agendado' && x.d < Date.now() + 5 * 60e3)) return toast('Esse dia já passou para uma parte agendada: escolha um dia no futuro.');
+    if (new Set(novos.map(x => dia0(x.d))).size > 1 && !await confirma(`Mover o Episódio ${ep} inteiro?`, 'As partes mantêm a distância entre elas: ' + novos.map(x => ddmm(x.d)).join(', ') + '.', 'Mover o episódio')) return;
+    let n = 0; for (const x of novos) if (await grava(x.i, { publicaEm: x.d })) n++; if (n) toast(`Episódio ${ep}: ${n} parte${n > 1 ? 's' : ''} para ${ddmm(novos[0].d)}${new Set(novos.map(x => dia0(x.d))).size > 1 ? ' em diante' : ''}.`); return;
+  }
+  if (alvo.faixa === 'semData') { const c = ps.filter(i => faixaDe(i) === 'concluido' && i.publicaEm); if (!c.length) return toast('Só as partes prontas (não publicadas) ficam sem data.'); let n = 0; for (const i of c) if (await grava(i, { publicaEm: null })) n++; if (n) toast(`Episódio ${ep}: ${n} parte${n > 1 ? 's' : ''} sem data.`); return; }
+  if (alvo.faixa === 'concluido') { if (ps.some(i => !i.publicaEm && faixaDe(i) === 'concluido')) return marcaDiaEp(ep); return; }
+  toast('Para agendar ou publicar, abra cada parte (clique nela): cada vídeo tem o seu arquivo e o seu link.');
 }
 // grava a mudança de organização (formato, canal, data, situação) de um item da equipe
 async function grava(i, mud, msg) {
@@ -851,6 +905,10 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
   if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
+  if (d.epSep !== undefined) { const i = itensTodos().find(x => x.id === d.epSep); if (!i) return; try { const m = epManual(); m[prepIdDe(i) || i.id] = null; localStorage.setItem('ep-episodios-manual', JSON.stringify(m)); } catch { } toast('A parte saiu do episódio (só neste navegador).'); pinta(); return; }
+  if (d.epCria !== undefined) { const ep = +d.epCria, k = +d.parte, ps = itensTodos().map(i => ({ i, e: episodioDe(i) })).filter(x => x.e && x.e.ep === ep).sort((a, b) => a.e.parte - b.e.parte), nome = nomeDaParte(ps, ep, k);
+    if (!await confirma(`Criar a Parte ${k} do Episódio ${ep}?`, `Abre um roteiro novo chamado "${nome}" nos Roteiros.`, 'Criar Parte ' + k)) return;
+    try { parent.postMessage({ ep: 'novo-roteiro', nome }, location.origin); } catch { toast('Abra o Preparativos para criar o roteiro.'); } return; }
   if (d.novoDia !== undefined) { novoRoteiroDoDia(+d.novoDia); return; }
   if (d.verDia !== undefined) { alternaDia(+d.verDia); return; }
   if (d.diaTodos !== undefined) { DIA = null; pinta(); return; }

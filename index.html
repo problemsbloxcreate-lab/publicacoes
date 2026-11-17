@@ -587,7 +587,6 @@ function cardHtml(i, linha) {
     quemInfo = `<div class="ln"><span>por</span>${quemHtml(i.por)}</div>${i.editadoEm ? `<div class="ln mexeu"><span>mexido</span>${i.editadoPor && i.editadoPor !== i.por ? `<span>por</span>${quemHtml(i.editadoPor)}` : ''}<span>${dataH(i.editadoEm)}</span></div>` : ''}`;
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
-    if (fx === 'agendado') ac.push(`<button class="lk" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>`);
     if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O ${esc(PROGS[i.programa] || 'programa')} abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
     if (!real && podePub && !i._ideia) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
     if (fx === 'concluido' && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
@@ -1071,7 +1070,6 @@ document.addEventListener('click', async e => {
   else if (d.mover) { const i = acha({ id: d.mover, tipo: d.tipo }); if (i) painelMover(i, null, { data: d.data === '1' }); }
   else if (d.conf) { const i = L.itens.find(x => x.id === d.conf); if (!i || !await confirma('Confirmar que saiu?', `"${i.titulo}" já saiu no canal ${canalDe(i)?.nome || ''}?`, 'Confirmar que saiu')) return; grava(i, { privacidade: 'public', modo: 'agora', confirmadoEm: Date.now() }, 'Confirmado: está no ar.'); }
   else if (d.cp) navigator.clipboard?.writeText(d.cp).then(() => toast('Link copiado.'));
-  else if (d.lemb) { const i = L.itens.find(x => x.id === d.lemb); if (i) { poeLembrete(i); window.EstudioConta?.calendario?.(leCal().find(x => x.yt === i.id)); pinta(); } }
   else if (d.pubi) publicarItem(L.itens.find(x => x.id === d.pubi));
   else if (d.gera) gerarVideo(L.itens.find(x => x.id === d.gera));
   else if (d.pub) publicar(ESP.find(v => v.id === d.pub));
@@ -1089,7 +1087,8 @@ $('#btAtualizar').onclick = () => { buscar(true); carregaLocais(); };
 const CAL = 'ep-calendario';
 const leCal = () => { try { const v = JSON.parse(localStorage.getItem(CAL) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 const temLembrete = id => leCal().some(x => x.yt === id);
-function poeLembrete(i) {
+function poeLembrete(i) { // o calendário pessoal saiu (pedido da dona, 17/11/2026): o agendado já aparece no calendário do Publicações; nada mais é gravado em 'ep-calendario'
+  return;
   if (!i.publicaEm) return; const l = leCal().filter(x => x.yt !== i.id);
   l.push({ id: Date.now(), tipo: 'aviso', t: ('YouTube: ' + i.titulo).slice(0, 80), txt: `Sai em ${i.canal?.nome || 'canal'} · https://youtu.be/${i.id}`, em: i.publicaEm, avisar: true, yt: i.id });
   try { localStorage.setItem(CAL, JSON.stringify(l.slice(-500))); } catch { }

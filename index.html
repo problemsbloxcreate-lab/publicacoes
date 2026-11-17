@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <script>/* visual Celeste (2.0): tema escuro ou claro, o mesmo para o Estúdio todo */
 try{document.documentElement.dataset.tema=localStorage.getItem('ep-tema')==='claro'?'claro':'escuro'}catch{document.documentElement.dataset.tema='escuro'}</script>
+<script>/* UNIDO AO PREPARATIVOS (pedido da dona, 17/11/2026): o Publicações agora é a aba "Publicações" do Preparativos. Aberto sozinho, vai para lá (mantendo ?video=…);
+   dentro do Preparativos (?inc=1) esconde o logo e a conta, que já estão no cabeçalho dele. */
+try{const q=location.search;if(top===self)location.replace('/preparativos/?aba=publicacoes'+(q?'&'+q.slice(1):''));else if(/[?&]inc=1/.test(q))document.documentElement.classList.add('inc')}catch{}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PUBLICAÇÕES · Estúdio Problems</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icone-180.png">
@@ -184,6 +187,18 @@ textarea{height:auto;min-height:90px;padding:6px 8px;resize:vertical}
 <link rel="preload" href="/estudio-inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estudio-visual.css">
 <style>
+/* embutido no Preparativos (17/11/2026) */
+html.inc .top .logo,html.inc .top [data-estudio-conta],html.inc .top .tema-bt{display:none!important}
+html.inc .top{position:static!important;border-bottom:0!important;background:transparent!important;backdrop-filter:none!important;padding-top:12px!important}
+.pil-st{display:inline-flex;align-items:center;gap:5px;margin-left:6px;font-size:12px;color:#a8a8a8}.pil-st::before{content:"";width:7px;height:7px;border-radius:50%;background:#8a8f9a}
+.pil-st.gravando::before{background:#fa6800}.pil-st.pronto::before{background:#60a917}
+/* SEM DATA (17/11/2026) */
+:root{--semData:#1ba1e2}
+.sec-fmt{font:600 11px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--mu2);margin:8px 0 2px}
+.pil-sd{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(27,161,226,.18);color:#5cc4ff;font-weight:600;font-size:12px}
+.mais-bt{margin-left:auto;font-size:16px;line-height:1;padding:2px 8px}
+.mm-pop{position:fixed;z-index:80;min-width:200px;max-width:300px;background:#2a2a2a;border:1px solid #454545;padding:5px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.mm-pop .lk{display:block;text-align:left;padding:6px 10px;color:#fff}.mm-pop .lk:hover{background:rgba(255,255,255,.1)}.mm-pop .ln{padding:4px 10px;color:#a8a8a8;font-size:12px}
 /* ===================== CELESTE (2.0, 11/11/2026): substitui o Metro acima. Tokens e cabeçalho: /estudio-visual.css =====================
    Tirar a classe "cel" do <html> volta o visual antigo. Regras: nada de Metro, sem botões ou textos inúteis. */
 html.cel{--bg:var(--fundo);--p:var(--fundo-2);--p2:var(--fundo-3);--p3:var(--fundo-4);--ln:var(--linha);--tx:var(--texto);--mu:var(--texto-2);--mu2:var(--texto-3);--ac:var(--acento);--leve:var(--fonte);
@@ -234,6 +249,13 @@ html.cel .quadro{gap:var(--e4);padding:var(--e5) clamp(16px,3vw,32px) 30px;scrol
 html.cel .faixa{flex:1 1 210px;min-width:196px;max-width:320px}
 html.cel .faixa>h2{font:600 var(--t-destaque)/1.2 var(--fonte);border-top:0;padding-top:0;align-items:center;border-radius:var(--raio-p)}
 html.cel .faixa>h2::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c);flex:none;align-self:center}
+html.cel{--semData:var(--acento)}
+html.cel .sec-fmt{font-family:var(--fonte);color:var(--texto-3)}
+html.cel .pil-sd{background:var(--acento-suave);color:var(--acento-link,var(--acento));border-radius:var(--raio-p)}
+html.cel .faixa[data-faixa=semData]{background:var(--acento-suave);border-radius:var(--raio-cartao);padding:10px 10px 4px}
+html.cel .card .th.sem-img{aspect-ratio:auto;height:48px;background:repeating-linear-gradient(135deg,var(--fundo-3) 0 8px,var(--fundo-2) 8px 16px)}
+html.cel .mm-pop{background:var(--elevado);border:1px solid var(--linha);border-radius:10px;box-shadow:var(--sombra-2)}
+html.cel .mm-pop .lk{color:var(--texto);border-radius:var(--raio-p)}html.cel .mm-pop .lk:hover{background:var(--acento-suave)}html.cel .mm-pop .ln{color:var(--texto-3)}
 html.cel .faixa>h2 i,html.cel .faixa>h2 .abre{font:400 var(--t-legenda) var(--fonte);color:var(--texto-3)}
 html.cel .faixa>h2[data-foco]:hover{background:var(--fundo-3)}
 html.cel .faixa .dica{color:var(--texto-3)}
@@ -345,7 +367,7 @@ const SERV = 'https://turma-ia.problemsraiz.workers.dev', LS = 'ep-publicacoes-v
 const YT = window.EstudioYouTube, $ = s => document.querySelector(s), $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pode = k => { try { return window.EstudioPerm?.pode?.(k) ?? true; } catch { return true; } };
-const PROGS = { animador: 'Animador', shorts: 'Shorts', editor: 'Editor', publicacoes: 'Publicações' };
+const PROGS = { animador: 'Animador', shorts: 'Shorts', editor: 'Editor', preparativos: 'Preparativos', publicacoes: 'Publicações' };
 const mb = n => { const m = (n || 0) / 1048576; return (m < 10 ? m.toFixed(1).replace('.', ',') : Math.round(m)) + ' MB'; };
 const hora = t => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const dataH = t => { const d = new Date(t), h = new Date(); const dia = d.toDateString() === h.toDateString() ? 'hoje' : new Date(+h + 864e5).toDateString() === d.toDateString() ? 'amanhã' : new Date(+h - 864e5).toDateString() === d.toDateString() ? 'ontem' : d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: d.getFullYear() !== h.getFullYear() ? 'numeric' : undefined }).replace(/\./g, ''); return `${dia} às ${hora(t)}`; };
@@ -380,11 +402,20 @@ const faixaDe = i => { const e = estado(i); return e === 'privado' ? 'naoListado
 const formatoDe = i => i.formato === 'short' || i.formato === 'longo' ? i.formato : i.programa === 'shorts' ? 'short' : 'longo';
 const quando = i => i.pedido || i.concluido ? (i.publicaEm || i.enviadoEm) : (estado(i) === 'agendado' || (i.publicaEm && estado(i) === 'noAr') ? i.publicaEm : i.enviadoEm);
 const dataAgenda = i => { const e = faixaDe(i); return e === 'concluido' || e === 'pedido' ? i.publicaEm || null : e === 'agendado' || e === 'noAr' ? quando(i) : null; };
-const FAIXAS = [['local', 'Neste navegador', 'Exportados aqui e ainda fora da lista da equipe'], ['concluido', 'Não publicados', 'Prontos, esperando a vez'], ['pedido', 'Na fila', 'Para outra pessoa da equipe postar'], ['agendado', 'Agendados', 'Têm dia e hora; confirme quando sair'], ['naoListado', 'Não listados', 'No YouTube, só com o link'], ['noAr', 'Publicados', 'No ar']];
+const FAIXAS = [['local', 'Neste navegador', 'Exportados aqui e ainda fora da lista da equipe'], ['semData', 'Sem data', 'Ainda sem dia marcado'], ['concluido', 'Não publicados', 'Prontos, com dia planejado'], ['pedido', 'Na fila', 'Para outra pessoa da equipe postar'], ['agendado', 'Agendados', 'Têm dia e hora; confirme quando sair'], ['naoListado', 'Não listados', 'No YouTube, só com o link'], ['noAr', 'Publicados', 'No ar']];
 const NOMEF = Object.fromEntries(FAIXAS.map(([k, n]) => [k, n]));
+// SEM DATA (pedido da dona, 17/11/2026): o não publicado que ainda não tem dia marcado fica numa faixa só dele (o que vem do Preparativos nasce assim).
+// É só um jeito de agrupar: a situação do item continua 'concluido' (faixaDe); a faixa é laneDe.
+// situação (rascunho/gravando/pronto) dos roteiros do Preparativos, vinda da lista dele (guardada para abrir rápido)
+let PREPST = (() => { try { return JSON.parse(localStorage.getItem('ep-publicacoes-prepst') || '{}') || {}; } catch { return {}; } })();
+const prepIdDe = i => (/[?&]id=([A-Za-z0-9_-]+)/.exec(i?.abrir || '') || [])[1] || '';
+const SITN = { rascunho: 'Rascunho', gravando: 'Gravando', pronto: 'Pronto' };
+const chipSit = i => { const st = i.programa === 'preparativos' ? PREPST[prepIdDe(i)] : ''; return st ? `<span class="pil-st ${esc(st)}">${esc(SITN[st] || st)}</span>` : ''; };
+const buscaSit = () => pede('/preparativos').then(r => { const m = {}; for (const x of r.itens || []) m[x.id] = x.status || 'rascunho'; PREPST = m; try { localStorage.setItem('ep-publicacoes-prepst', JSON.stringify(m)); } catch { } pinta(); }).catch(() => { });
+const laneDe = i => { const e = faixaDe(i); return e === 'concluido' && !i.publicaEm ? 'semData' : e; };
 // ATRASADO: agendado que passou da hora sem ninguém confirmar, ou não publicado / pedido com a data planejada vencida
 const atrasado = i => !!i.publicaEm && i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
-const linhaQuando = i => { const e = faixaDe(i), t = quando(i); return e === 'agendado' ? (atrasado(i) ? `era para sair ${dataH(t)}` : `sai ${dataH(t)}`) : e === 'noAr' ? `${i.publicaEm ? 'saiu' : 'publicado'} ${dataH(t)}` : (e === 'concluido' || e === 'pedido') && i.publicaEm ? `${atrasado(i) ? 'era planejado para' : 'planejado para'} ${dataH(i.publicaEm)}` : e === 'concluido' ? `concluído ${dataH(i.enviadoEm)}` : `enviado ${dataH(t)}`; };
+const linhaQuando = i => { const e = faixaDe(i), t = quando(i); return e === 'agendado' ? (atrasado(i) ? `era para sair ${dataH(t)}` : `sai ${dataH(t)}`) : e === 'noAr' ? `${i.publicaEm ? 'saiu' : 'publicado'} ${dataH(t)}` : (e === 'concluido' || e === 'pedido') && i.publicaEm ? `${atrasado(i) ? 'era planejado para' : 'planejado para'} ${dataH(i.publicaEm)}` : e === 'concluido' ? 'sem data' : `enviado ${dataH(t)}`; };
 
 // ---------- lista da equipe (um JSON, com cache) ----------
 let L = (() => { try { const v = JSON.parse(localStorage.getItem(LS) || 'null'); return v && Array.isArray(v.itens) ? { canais: [], ...v } : { itens: [], canais: [], em: 0 }; } catch { return { itens: [], canais: [], em: 0 }; } })();
@@ -394,7 +425,7 @@ const pede = async (caminho, op = {}) => {
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error?.message || `A nuvem respondeu ${r.status}.`); return j;
 };
 let buscando = null, erroNuvem = '';
-const buscar = forca => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
+const buscar = forca => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; if ((v.itens || []).some(i => i.programa === 'preparativos')) buscaSit(); }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
 const salvaItem = async (item, substitui) => { guardaL(await pede('/publicacoes', { method: 'POST', body: JSON.stringify({ item, ...(substitui ? { substitui } : {}) }) })); pinta(); };
 // o item como a nuvem quer receber (sem os campos que ela mesma põe)
 const paraNuvem = i => { const { meu, por, ...x } = i; return x; };
@@ -403,7 +434,7 @@ const paraNuvem = i => { const { meu, por, ...x } = i; return x; };
 const NOMES = {};
 const nomeDe = async u => { if (!u || NOMES[u]) return; NOMES[u] = { nome: '…' }; try { const q = await window.EstudioConta?.quem?.(u); NOMES[u] = { nome: q?.nome || 'Alguém da equipe', foto: q?.foto || '' }; } catch { NOMES[u] = { nome: 'Alguém da equipe' }; } agendaPinta(); };
 let pintaPend = 0; const agendaPinta = () => { if (!pintaPend) pintaPend = requestAnimationFrame(() => { pintaPend = 0; pinta(); }); };
-const IC_PROG = { animador: ['an', 'An'], editor: ['ed', 'Ed'], shorts: ['sh', 'Sh'], publicacoes: ['x-publicacoes', 'Pu'] };
+const IC_PROG = { animador: ['an', 'An'], editor: ['ed', 'Ed'], shorts: ['sh', 'Sh'], preparativos: ['pr', 'Pr'], publicacoes: ['x-publicacoes', 'Pu'] };
 const progIc = p => { const [id, l] = IC_PROG[p] || IC_PROG.publicacoes; return `<span class="pi" data-estudio-icone="${id}" title="${esc(PROGS[p] || 'Publicações')}"><b>${l}</b></span>`; };
 const quemHtml = u => { const n = NOMES[u]; if (!n) nomeDe(u); return `<span class="quem">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}${esc(n?.nome || '…')}</span>`; };
 
@@ -450,7 +481,7 @@ const URLS = new Map(); const urlDe = v => { if (!URLS.has(v.id)) URLS.set(v.id,
 function cardHtml(i, linha) {
   const fx = i._local ? 'local' : faixaDe(i), cor = `var(--${fx})`, mov = podeMover(i), fmt = i._local ? formatoLocal(i) : formatoDe(i);
   const podePub = pode('publicacoes.publicar');
-  let th, tx, ac = [];
+  let th, tx, ac = [], quemInfo = '';
   if (i._local) {
     th = `<span class="th"><video muted preload="metadata" src="${urlDe(i)}#t=0.5"></video></span>`;
     tx = `<b title="${esc(i.titulo || i.nome)}">${esc(i.titulo || i.nome)}</b><div class="ln">${progIc(i.programa)}${esc(PROGS[i.programa] || 'Vídeo')} · ${mb(i.blob?.size)} · exportado ${dataH(i.em)}</div>`;
@@ -462,11 +493,11 @@ function cardHtml(i, linha) {
     const img = real ? thumbYt(i.id) : i.thumb || '';
     const selo = canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'selo-canal') : '';
     th = real ? `<a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${img}')" aria-label="Abrir no YouTube">${selo}</a>`
-      : `<span class="th" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
-    tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${linhaQuando(i)}</div>
+      : `<span class="th${img ? '' : ' sem-img'}" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
+    tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${laneDe(i) === 'semData' ? '<span class="pil-sd">Sem data</span>' : linhaQuando(i)}${chipSit(i)}</div>
       <div class="ln">${canalHtml(canalDe(i))}${fx === 'pedido' ? `<span>${esc(MODOS[i.modo] || '')}</span>` : ''}</div>
-      <div class="ln">${progIc(i.programa)}<span>${esc(PROGS[i.programa] || 'Publicações')}</span>·<span>por</span>${quemHtml(i.por)}${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>
-      ${i.editadoEm ? `<div class="ln mexeu"><span>mexido</span>${i.editadoPor && i.editadoPor !== i.por ? `<span>por</span>${quemHtml(i.editadoPor)}` : ''}<span>${dataH(i.editadoEm)}</span></div>` : ''}`;
+      <div class="ln">${progIc(i.programa)}<span>${esc(PROGS[i.programa] || 'Publicações')}</span>${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>`;
+    quemInfo = `<div class="ln"><span>por</span>${quemHtml(i.por)}</div>${i.editadoEm ? `<div class="ln mexeu"><span>mexido</span>${i.editadoPor && i.editadoPor !== i.por ? `<span>por</span>${quemHtml(i.editadoPor)}` : ''}<span>${dataH(i.editadoEm)}</span></div>` : ''}`;
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
     if (fx === 'agendado') ac.push(`<button class="lk" data-lemb="${esc(i.id)}">${temLembrete(i.id) ? 'No calendário' : 'Lembrete'}</button>`);
@@ -477,9 +508,23 @@ function cardHtml(i, linha) {
     if (i.meu || L.adm) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
   if (mov) ac.unshift(`<button class="lk" data-mover="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}" style="color:#fff">Mover…</button>`);
+  // CARTÃO LIMPO (17/11/2026): fica à vista só o que se usa toda hora; o resto (e quem enviou/mexeu) vai para o menu ⋯
+  let acHtml = ac.join('');
+  if (!i._local) {
+    if (laneDe(i) === 'semData' && mov) ac.unshift(`<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item" data-data="1">Marcar dia</button>`);
+    const vis = laneDe(i) === 'semData' ? /data-data="1"|data-pubi|data-gera/ : /data-mover|data-pubi|data-gera|data-conf/, p1 = ac.filter(x => vis.test(x)).slice(0, 2), p2 = ac.filter(x => !p1.includes(x));
+    acHtml = p1.join('') + (p2.length || quemInfo ? `<button class="lk mais-bt" data-mais title="Mais ações" aria-label="Mais ações">⋯</button><div class="mm-src" hidden>${quemInfo}${p2.join('')}</div>` : '');
+  }
   const fmtChip = linha ? `<span class="chip-fmt">${fmt === 'short' ? 'Short' : 'Vídeo longo'}</span>` : '';
-  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${th}<div class="tx">${tx}</div><div class="ac">${ac.join('')}</div></div>`;
+  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${th}<div class="tx">${tx}</div><div class="ac">${acHtml}</div></div>`;
 }
+// na aba Todos, cada faixa separa Shorts de Vídeos longos (17/11/2026)
+const cartoesPorFormato = (lista, f) => {
+  if (f !== 'todos' || lista.some(i => i._local)) return lista.map(i => cardHtml(i)).join('');
+  const sh = lista.filter(i => formatoDe(i) === 'short'), lo = lista.filter(i => formatoDe(i) !== 'short');
+  if (!sh.length || !lo.length) return lista.map(i => cardHtml(i)).join('');
+  return `<div class="sec-fmt">Shorts</div>${sh.map(i => cardHtml(i)).join('')}<div class="sec-fmt">Vídeos longos</div>${lo.map(i => cardHtml(i)).join('')}`;
+};
 const ordem = fx => fx === 'agendado' || fx === 'pedido' ? (a, b) => quando(a) - quando(b) : fx === 'concluido' ? (a, b) => (a.publicaEm || 9e15) - (b.publicaEm || 9e15) || b.enviadoEm - a.enviadoEm : (a, b) => quando(b) - quando(a);
 function pinta() {
   const I = (L.itens || []).filter(passa), loc = soltos().map(v => ({ ...v, _local: true }));
@@ -500,9 +545,9 @@ function pinta() {
     const f = F.piv, H = I.filter(i => ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
     const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fh') : ''}<b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'} · ${faixaDe(i) === 'noAr' ? 'no ar' : atrasado(i) ? 'atrasado' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje.</div>`}</div>`;
     const faixas = FAIXAS.map(([k, n, d]) => {
-      const lista = k === 'local' ? loc.filter(v => fmtOk(formatoLocal(v), f)) : I.filter(i => fmtOk(formatoDe(i), f) && faixaDe(i) === k).sort(ordem(k));
+      const lista = k === 'local' ? loc.filter(v => fmtOk(formatoLocal(v), f)) : I.filter(i => fmtOk(formatoDe(i), f) && laneDe(i) === k).sort(ordem(k === 'semData' ? 'concluido' : k));
       if (k === 'local' && !lista.length) return '';
-      return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2 data-foco="${k}" title="Ver só ${esc(n)}, organizado por dia e com filtros">${n}<i>${lista.length}</i><span class="sp"></span><span class="abre">ver tudo ›</span></h2><div class="dica">${d}</div><div class="cards">${lista.length ? lista.map(i => cardHtml(i)).join('') : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
+      return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2 data-foco="${k}" title="Ver só ${esc(n)}, organizado por dia e com filtros">${n}<i>${lista.length}</i><span class="sp"></span><span class="abre">ver tudo ›</span></h2><div class="dica">${d}</div><div class="cards">${lista.length ? cartoesPorFormato(lista, f) : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
     }).join('');
     $('#area').innerHTML = hoje + `<div class="quadro">${faixas}</div>`;
     const q = $('.quadro'); if (q) q.scrollLeft = rolagem;
@@ -523,7 +568,7 @@ function focoHtml(I, loc) {
   const h0 = new Date(); h0.setHours(0, 0, 0, 0); const ini = +h0, fim = ini + 864e5, passado = PASSADO[k];
   const PER = [['hoje', 'Hoje'], ['7', passado ? 'Últimos 7 dias' : 'Próximos 7 dias'], ['30', passado ? 'Últimos 30 dias' : 'Próximos 30 dias'], ['todos', 'Todos']];
   const naPer = t => F.per === 'todos' ? true : !t ? false : F.per === 'hoje' ? t >= ini && t < fim : passado ? t >= ini - (+F.per - 1) * 864e5 && t < fim : t >= ini && t < ini + +F.per * 864e5;
-  const base = k === 'local' ? loc : k === 'atrasado' ? I.filter(atrasado) : I.filter(i => faixaDe(i) === k);
+  const base = k === 'local' ? loc : k === 'atrasado' ? I.filter(atrasado) : I.filter(i => laneDe(i) === k);
   const L2 = base.filter(i => fmtOk(i._local ? formatoLocal(i) : formatoDe(i), F.fmt) && naPer(dataFoco(i)));
   const cresce = F.ord !== 'desce'; L2.sort((a, b) => ((dataFoco(a) ?? (cresce ? 9e15 : -1)) - (dataFoco(b) ?? (cresce ? 9e15 : -1))) * (cresce ? 1 : -1));
   const grupos = []; for (const i of L2) { const t = dataFoco(i), g = t ? new Date(t).toDateString() : 'sem'; let x = grupos[grupos.length - 1]; if (!x || x.g !== g) grupos.push(x = { g, t, itens: [] }); x.itens.push(i); }
@@ -575,7 +620,7 @@ async function moverPara(a, alvo) {
   const i = acha(a); if (!i) return;
   if (i._local) { // vídeo deste navegador
     if (alvo.formato) { const v = ESP.find(x => x.id === i.id); v.formato = alvo.formato; try { await YT.fila.poe(v); } catch { } pinta(); return toast(`Foi para ${alvo.formato === 'short' ? 'Shorts' : 'Vídeos longos'}.`); }
-    if (alvo.faixa === 'concluido') return organizar(ESP.find(x => x.id === i.id));
+    if (alvo.faixa === 'concluido' || alvo.faixa === 'semData') return organizar(ESP.find(x => x.id === i.id));
     if (alvo.faixa === 'pedido') return publicar(ESP.find(x => x.id === i.id), null, { via: 'fila' });
     if (['agendado', 'naoListado', 'noAr'].includes(alvo.faixa)) return publicar(ESP.find(x => x.id === i.id), null, { modo: { agendado: 'agendado', naoListado: 'naoListado', noAr: 'agora' }[alvo.faixa] });
     return;
@@ -588,6 +633,8 @@ async function moverPara(a, alvo) {
     if (fx === 'agendado' && +d < Date.now() + 5 * 60e3) return toast('Esse dia já passou: escolha um dia no futuro.');
     return grava(i, { publicaEm: +d }, real ? `Mudou para ${dataH(+d)} no Estúdio. No YouTube, mude também no Studio.` : `Planejado para ${dataH(+d)}.`);
   }
+  if (alvo.faixa === 'semData') { if (fx !== 'concluido') return toast('Só os prontos (não publicados) ficam sem data.'); if (!i.publicaEm) return; return grava(i, { publicaEm: null }, 'Ficou sem data.'); }
+  if (alvo.faixa === 'concluido' && fx === 'concluido' && !i.publicaEm) return painelMover(i, null, { data: true }); // da faixa Sem data para a dos que têm dia: escolher o dia
   if (!alvo.faixa || alvo.faixa === fx) return;
   if (alvo.faixa === 'local') return toast('Essa faixa é só para vídeos exportados neste navegador.');
   if (real && ['concluido', 'pedido'].includes(alvo.faixa)) return toast('Esse vídeo já está no YouTube: dá para mudar entre Agendados, Não listados e Publicados.');
@@ -672,8 +719,13 @@ function painelMover(i, faixaAlvo, op = {}) {
 
 // ---------- cliques ----------
 document.addEventListener('click', async e => {
-  const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); if (!b) return;
+  const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
+  if (d.mais !== undefined) { // menu ⋯ do cartão: fora do cartão para não ser cortado pela rolagem da faixa
+    const r = b.getBoundingClientRect(), pop = document.createElement('div'); pop.className = 'mm-pop'; pop.innerHTML = b.parentElement.querySelector('.mm-src')?.innerHTML || '';
+    document.body.appendChild(pop); const w = pop.offsetWidth, hh = pop.offsetHeight; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; pop.style.top = (r.bottom + hh + 8 > innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + 'px';
+    return;
+  }
   if (d.foco !== undefined) { const novo = d.foco; if (novo && novo !== F.foco) { F.per = novo === 'agendado' ? 'hoje' : 'todos'; F.fmt = 'todos'; F.ord = PASSADO[novo] ? 'desce' : 'cresce'; } F.foco = novo; guardaF(); pinta(); scrollTo(0, 0); }
   else if (d.fseg) { F[d.fseg] = d.v; guardaF(); pinta(); }
   else if (d.piv) { F.piv = d.piv; F.foco = ''; guardaF(); pinta(); }

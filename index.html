@@ -313,6 +313,7 @@ html.cel .ep-pt.vz .pil-st.criar{color:var(--acento);font-weight:600}html.cel .e
 html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
 .ep-esc-l{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto;margin:6px 0 10px}
 .ep-esc-i{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--linha,rgba(255,255,255,.1));border-radius:8px;background:var(--fundo-2,transparent);color:var(--texto,inherit);font:inherit;cursor:pointer}
+.ep-esc-l h4{flex:none;margin:8px 0 2px;font-size:12px;font-weight:600;color:var(--texto-3,#888)}
 .ep-esc-i:hover{background:var(--fundo-3,rgba(255,255,255,.08));border-color:var(--linha-forte,rgba(255,255,255,.2))}
 .ep-esc-i .nome{font-weight:600}.ep-esc-i .pil-st{font-size:12px;color:var(--texto-2,#aaa)}
 html.cel .ep-card .tx{grid-template-columns:minmax(0,1fr)}html.cel .ep-card .ep-partes,html.cel .ep-card .ep-seg{min-width:0}html.cel .ep-pt{min-width:0}
@@ -590,6 +591,7 @@ function cardHtml(i, linha) {
     if (!real && podePub && !i._ideia) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
     if (fx === 'concluido' && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
     if (loc) ac.push(`<button class="lk" data-baixa="${esc(loc.id)}">Baixar</button>`);
+    if (!i._ideia && podeMover(i) && ['concluido', 'pedido'].includes(fx)) ac.push(`<button class="lk" data-proj-item="${esc(i.id)}" title="Liga este cartão a um projeto da nuvem do Animador">Escolher projeto do Animador…</button>`);
     if ((i.meu || L.adm) && !i._ideia) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
   if (mov) ac.unshift(`<button class="lk" data-mover="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}" style="color:#fff">Mover…</button>`);
@@ -607,23 +609,118 @@ function cardHtml(i, linha) {
 const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), feitos = new Set(); return lista.map(i => { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) return cardHtml(i); if (feitos.has(e.ep)) return ''; feitos.add(e.ep); return cardEpHtml(e.ep, l); }).join(''); };
 /* CARTÃO DO EPISÓDIO (pedido da dona, 17/11/2026): arrasta como os outros (o episódio todo); cada "Parte N" é clicável (abre o mesmo painel dos outros cartões),
    tem o ⋯ (abrir/mover só esta parte, Marcar dia, Separar deste episódio) e arrasta sozinha; "ainda não existe" oferece criar a parte já com o nome; passou do dia e não saiu = atrasado. */
+/* ===== EPISÓDIO: UMA DATA SÓ, PARTES DO ANIMADOR (pedido da dona, 17/11/2026) =====
+   - Todas as partes de um episódio têm UMA data só: a do episódio. A parte não tem data própria. Arrastar o cartão do episódio OU uma parte muda o episódio inteiro.
+   - Parte que ainda não existe: escolher um PROJETO DO ANIMADOR (lista da nuvem, com pastas e busca), um cartão que já existe, criar o roteiro, ou marcar "feita por outra pessoa".
+   - A detecção olha também os projetos do Animador pelo nome (Episódio N + Parte K); como um episódio costuma ter várias versões (2D, 3D, LEGACY), ela só AVISA quantos parecem a parte; quem liga é a pessoa. */
+const partesDoEp = ep => itensTodos().filter(i => { const e = episodioDe(i); return e && e.ep === ep; });
+const dataDoEp = ep => { const ds = partesDoEp(ep).map(i => dataAgenda(i)).filter(Boolean).sort((a, b) => a - b); return ds[0] || null; };
+const NOME_PROJ_RUIM = /legacy|teste|c[oó]pia|anterior|pode apagar/i;
+const PROJ = { lista: null, pastas: null, em: 0, pedindo: null };
+const carregaProj = (forca) => {
+  if (!forca && PROJ.lista && Date.now() - PROJ.em < 120e3) return Promise.resolve(PROJ);
+  return PROJ.pedindo || (PROJ.pedindo = (async () => {
+    const r = await pede('/animacoes'); PROJ.lista = (r.itens || []).map(x => ({ id: String(x.id), nome: String(x.nome || ''), mod: +x.mod || 0, por: x.por || '' })).filter(x => x.id);
+    try { const p = await pede('/animacoes/arquivo?k=' + encodeURIComponent('animacoes/pastas.json')); PROJ.pastas = { pastas: Array.isArray(p.pastas) ? p.pastas : [], de: p.de && typeof p.de === 'object' ? p.de : {} }; } catch { PROJ.pastas = { pastas: [], de: {} }; }
+    PROJ.em = Date.now(); return PROJ; })().finally(() => { PROJ.pedindo = null; }));
+};
+const projEmUso = id => itensTodos().find(i => (i.proj && i.proj.id === id) || new RegExp('nuvem=' + id + '(&|$)').test(i.abrir || ''));
+const projDaParte = (ep, k) => (PROJ.lista || []).filter(p => { const m = RE_EP.exec(semAc(p.nome)); return m && +m[1] === ep && +m[2] === k && !NOME_PROJ_RUIM.test(p.nome) && !projEmUso(p.id); });
+let projPedido = false;
+const projDeFundo = () => { if (projPedido) return; projPedido = true; carregaProj().then(() => pinta()).catch(() => { projPedido = false; }); };
+// episódio com datas diferentes (de antes da regra): todas as partes ficam com a data do episódio (a mais cedo) e a pessoa é avisada
+const UNIDOS = new Set();
+async function unificaEp(ep) {
+  const alvo = dataDoEp(ep); if (!alvo) return;
+  const dif = partesDoEp(ep).filter(i => podeMover(i) && ['concluido', 'pedido'].includes(faixaDe(i)) && i.publicaEm && i.publicaEm !== alvo); if (!dif.length) return;
+  let n = 0; for (const i of dif) if (await grava(i, { publicaEm: alvo })) n++;
+  if (n) toast(`Episódio ${ep}: ${n} parte${n > 1 ? 's' : ''} ficou${n > 1 ? 'ram' : ''} com a data do episódio, ${dataH(alvo)}.`);
+}
+const unificaTodos = () => { const eps = gruposEp(itensTodos().filter(i => !i._local)); for (const [ep] of eps) if (!UNIDOS.has(ep)) { UNIDOS.add(ep); unificaEp(ep); } };
 const nomeDaParte = (ps, ep, k) => { const base = String((ps[0] && ps[0].i.titulo) || ''), re = /\b(parte|part|pt|p)(\s*\.?\s*)(\d{1,2})\b/i, m = re.exec(base); /* só até o número da parte: o que vem depois ("— Portão (3D)") é o subtítulo da outra parte */ return m ? base.slice(0, m.index) + m[1] + m[2] + k : 'Episódio ' + ep + ' - Parte ' + k; };
 function cardEpHtml(ep, l) {
+  projDeFundo(); setTimeout(unificaTodos, 1200);
   const ps = l.slice().sort((a, b) => a.e.parte - b.e.parte), maxP = Math.max(...ps.map(p => p.e.parte)), tem = new Set(ps.map(p => p.e.parte)), faltam = []; for (let k = 1; k <= maxP; k++) if (!tem.has(k)) faltam.push(k);
-  const datas = ps.map(p => p.i.publicaEm).filter(Boolean).sort((a, b) => a - b), dia = datas[0], podeMarcar = ps.some(p => !p.i.publicaEm && podeMover(p.i) && ['concluido', 'pedido'].includes(faixaDe(p.i)));
+  const dia = dataDoEp(ep), podeMarcar = ps.some(p => podeMover(p.i) && ['concluido', 'pedido', 'agendado'].includes(faixaDe(p.i)));
   const atr = ps.some(p => atrasado(p.i)), arrasta = ps.some(p => podeMover(p.i) && faixaDe(p.i) !== 'noAr');
   const mais = ps.reduce((m, p) => ETAPA_ORD.indexOf(etapaDe(p.i)) < ETAPA_ORD.indexOf(etapaDe(m.i)) ? p : m, ps[0]);
   const seg = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1); return p ? `<i style="background:${corEtapa(p.i)}"></i>` : '<i class="vz"></i>'; }).join('');
   const linhas = Array.from({ length: maxP }, (_, k) => { const p = ps.find(q => q.e.parte === k + 1);
-    if (!p) return `<button class="ep-pt vz" data-ep-cria="${ep}" data-parte="${k + 1}" title="Criar a Parte ${k + 1} no Preparativos, já com o nome do episódio"><span class="n">Parte ${k + 1}</span><span class="nome">ainda não existe</span><span class="pil-st criar">+ Criar</span></button>`;
-    const i = p.i, et = ETAPAS[etapaDe(i)], mov = podeMover(i), fx = faixaDe(i), atrP = atrasado(i);
+    if (!p) { const n = projDaParte(ep, k + 1).length; return `<button class="ep-pt vz" data-ep-cria="${ep}" data-parte="${k + 1}" title="Escolher um projeto do Animador, um cartão que já existe, criar o roteiro ou marcar como feita por outra pessoa"><span class="n">Parte ${k + 1}</span><span class="nome">ainda não existe${n ? ` · ${n} no Animador` : ''}</span><span class="pil-st criar">+ Escolher</span></button>`; }
+    const i = p.i, et = ETAPAS[etapaDe(i)], mov = podeMover(i), fx = faixaDe(i);
     const menu = [`<button class="lk" data-mover="${esc(i.id)}" data-tipo="item">Abrir / mover só esta parte…</button>`,
-      mov && laneDe(i) === 'semData' ? `<button class="lk" data-mover="${esc(i.id)}" data-tipo="item" data-data="1">Marcar dia desta parte</button>` : '',
+      mov ? `<button class="lk" data-proj-item="${esc(i.id)}">Escolher projeto do Animador…</button>` : '',
+      mov && ['concluido', 'pedido', 'agendado'].includes(fx) ? `<button class="lk" data-ep-dia="${ep}">Mudar a data do episódio</button>` : '',
       fx === 'concluido' && i.abrir ? `<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>` : '',
-      `<button class="lk" data-ep-sep="${esc(i.id)}" title="Esta parte deixa de aparecer dentro do episódio (só neste navegador)">Separar deste episódio</button>`].join('');
-    return `<div class="ep-pt${atrP ? ' atr' : ''}" data-id="${esc(i.id)}" data-tipo="item"${mov && fx !== 'noAr' ? ' draggable="true"' : ''}><button class="ep-ab" data-mover="${esc(i.id)}" data-tipo="item" title="Abrir a Parte ${k + 1}: ${esc(i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(i.titulo)}</span><span class="pil-st" style="--e:${atrP ? 'var(--atr)' : et[1]}">${atrP ? 'atrasado' : esc(et[0])}${i.publicaEm ? ' · ' + esc(ddmm(i.publicaEm)) : ''}</span></button><button class="lk mais-bt" data-mais title="Mais ações da Parte ${k + 1}" aria-label="Mais ações da Parte ${k + 1}">⋯</button><div class="mm-src" hidden>${menu}</div></div>`; }).join('');
-  const quando = dia ? (atr ? 'a primeira era para sair ' : 'a primeira sai ') + dataH(dia) : '<span class="pil-sd">Sem data</span>';
-  return `<div class="card ep-card${atr ? ' atr' : ''}" style="--c:${atr ? 'var(--atr)' : corEtapa(mais.i)}" data-ep="${ep}"${arrasta ? ` draggable="true" data-ep-arr="${ep}"` : ''}><div class="tx">${atr ? '<span class="selo-atr">atrasado</span>' : ''}<b>Episódio ${ep} · ${faltam.length ? ps.length + ' de ' + maxP : ps.length} partes</b><div class="quando">${quando}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">Marcar dia do episódio</button>` : ''}</div></div>`;
+      `<button class="lk" data-ep-sep="${esc(i.id)}" title="Esta parte deixa de aparecer dentro do episódio e passa a ter a data dela">Separar deste episódio</button>`].join('');
+    return `<div class="ep-pt" data-id="${esc(i.id)}" data-tipo="item"${mov && fx !== 'noAr' ? ` draggable="true" data-ep-arr="${ep}"` : ''}><button class="ep-ab" data-mover="${esc(i.id)}" data-tipo="item" title="Abrir a Parte ${k + 1}: ${esc(i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(i.titulo)}</span><span class="pil-st" style="--e:${et[1]}">${esc(et[0])}</span></button><button class="lk mais-bt" data-mais title="Mais ações da Parte ${k + 1}" aria-label="Mais ações da Parte ${k + 1}">⋯</button><div class="mm-src" hidden>${menu}</div></div>`; }).join('');
+  const quando = dia ? (atr ? 'o episódio era para sair ' : 'o episódio sai ') + dataH(dia) : '<span class="pil-sd">Sem data</span>';
+  return `<div class="card ep-card${atr ? ' atr' : ''}" style="--c:${atr ? 'var(--atr)' : corEtapa(mais.i)}" data-ep="${ep}"${arrasta ? ` draggable="true" data-ep-arr="${ep}"` : ''}><div class="tx">${atr ? '<span class="selo-atr">atrasado</span>' : ''}<b>Episódio ${ep} · ${faltam.length ? ps.length + ' de ' + maxP : ps.length} partes</b><div class="quando">${quando}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">${dia ? 'Mudar a data do episódio' : 'Marcar dia do episódio'}</button>` : ''}</div></div>`;
+}
+// data do episódio: vale para TODAS as partes (as que já têm data também)
+function marcaDiaEp(ep) {
+  const ps = partesDoEp(ep).filter(i => podeMover(i) && ['concluido', 'pedido', 'agendado'].includes(faixaDe(i)));
+  if (!ps.length) return toast('Essas partes já estão no YouTube: mude o dia de cada uma clicando nela.');
+  const atual = dataDoEp(ep);
+  const W = janela(`<h3>Data do Episódio ${ep}</h3><p>As ${ps.length} partes do episódio têm uma data só: esta.</p><div class="pes"><input type="datetime-local" data-em value="${emLocal(atual || Date.now() + 864e5)}" style="flex:1"></div><div class="pes"><button class="bt" data-c>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha;
+  W.J.querySelector('[data-ok]').onclick = async () => { const t = new Date(W.J.querySelector('[data-em]').value).getTime(); if (!t) return toast('Escolha o dia e a hora.'); if (ps.some(i => faixaDe(i) === 'agendado') && t < Date.now() + 5 * 60e3) return toast('Para partes agendadas, escolha um dia no futuro.'); W.fecha(); let n = 0; for (const i of ps) if (dataAgenda(i) !== t && await grava(i, { publicaEm: t })) n++; toast(n ? `Episódio ${ep}: a data é ${dataH(t)} para todas as partes.` : 'A data já era essa.'); };
+}
+/* PARTE QUE AINDA NÃO EXISTE: projeto do Animador, cartão que já existe, roteiro novo ou "feita por outra pessoa". Ligar grava item.ep = { n, parte } no próprio cartão (vale para a equipe). */
+function escolheParte(ep, k, nome) {
+  const n = projDaParte(ep, k).length;
+  const W = janela(`<h3>Parte ${k} do Episódio ${ep}</h3><p>Como você quer ter a Parte ${k}?</p><div class="pes" style="flex-direction:column;align-items:stretch;gap:8px"><button class="bt pri" data-proj>Escolher um projeto do Animador${n ? ` (${n} parece${n > 1 ? 'm' : ''} esta parte)` : ''}</button><button class="bt" data-existe>Escolher um cartão que já existe</button><button class="bt" data-novo>Criar um roteiro novo (${esc(nome)})</button><button class="bt" data-outra>Marcar como feita por outra pessoa</button><button class="bt perigo" data-c>Cancelar</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha;
+  W.J.querySelector('[data-proj]').onclick = () => { W.fecha(); escolheProjeto({ ep, k, nome }); };
+  W.J.querySelector('[data-existe]').onclick = () => { W.fecha(); listaParte(ep, k); };
+  W.J.querySelector('[data-novo]').onclick = () => { W.fecha(); try { parent.postMessage({ ep: 'novo-roteiro', nome }, location.origin); } catch { toast('Abra o Preparativos para criar o roteiro.'); } };
+  W.J.querySelector('[data-outra]').onclick = () => { W.fecha(); marcaOutraPessoa(ep, k, nome); };
+}
+// cartão novo de uma parte (projeto do Animador ou "outra pessoa"): herda canal, formato e a data do episódio
+function itemDeParte(ep, k, base) {
+  const sib = partesDoEp(ep)[0], t = dataDoEp(ep);
+  return { concluido: true, canal: sib?.canal ? { id: sib.canal.id || '', nome: sib.canal.nome || '' } : { id: '', nome: '' }, formato: sib ? formatoDe(sib) : 'longo', modo: 'naoListado', privacidade: 'unlisted', enviadoEm: Date.now(), publicaEm: t || null, ep: { n: ep, parte: k }, ...base };
+}
+async function marcaOutraPessoa(ep, k, nome) {
+  const titulo = (nome + ' — feita por outra pessoa').slice(0, 100);
+  if (!await confirma(`Parte ${k} feita por outra pessoa?`, `Cria o cartão "${titulo}" dentro do Episódio ${ep}, com a data do episódio. Depois dá para anexar o vídeo pelo Postar…`, 'Criar o cartão')) return;
+  try { await salvaItem(itemDeParte(ep, k, { id: ('ou' + ep + 'p' + k + Date.now().toString(36)).slice(0, 20), titulo, programa: '' })); toast(`Parte ${k} marcada como feita por outra pessoa.`); } catch (er) { toast('Não consegui criar: ' + er.message, '#ff6b5b'); }
+}
+function listaParte(ep, k) {
+  const cand = itensTodos().filter(i => !i._local && !i._ideia && !episodioDe(i) && podeMover(i)).sort((a, b) => (laneDe(a) === 'semData' ? 0 : 1) - (laneDe(b) === 'semData' ? 0 : 1) || String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'));
+  const W = janela(`<h3>Qual cartão é a Parte ${k} do Episódio ${ep}?</h3><p class="nota">Só aparecem cartões que ainda não estão em nenhum episódio e que a sua conta pode organizar. A ligação vale para a equipe toda.</p><input type="text" data-q placeholder="Buscar pelo título" style="width:100%;margin:6px 0"><div class="ep-esc-l"></div><div class="pes"><button class="bt perigo" data-c>Cancelar</button></div>`);
+  const lista = W.J.querySelector('.ep-esc-l'), q = W.J.querySelector('[data-q]');
+  const pinta2 = () => { const t = semAc(q.value.trim()), L2 = cand.filter(i => !t || semAc(i.titulo).includes(t));
+    lista.innerHTML = L2.length ? L2.map(i => `<button class="ep-esc-i" data-esc="${esc(i.id)}"><span class="nome">${esc(i.titulo || '(sem título)')}</span><span class="pil-st" style="--e:${ETAPAS[etapaDe(i)][1]}">${esc(NOMEF[laneDe(i)] || '')} · ${esc(ETAPAS[etapaDe(i)][0])}</span></button>`).join('') : '<p class="nota">Nenhum cartão encontrado.</p>';
+    lista.querySelectorAll('[data-esc]').forEach(b => b.onclick = async () => { const i = cand.find(x => x.id === b.dataset.esc); if (!i) return; W.fecha(); await ligaItemAoEp(i, ep, k); }); };
+  q.oninput = pinta2; pinta2(); W.J.querySelector('[data-c]').onclick = W.fecha; q.focus();
+}
+// liga um cartão que já existe ao episódio: ele passa a ter a data do episódio (se o episódio tem)
+async function ligaItemAoEp(i, ep, k) {
+  const t = dataDoEp(ep), mud = { ep: { n: ep, parte: k } }; if (t && ['concluido', 'pedido'].includes(faixaDe(i))) mud.publicaEm = t;
+  await grava(i, mud, `"${i.titulo}" agora é a Parte ${k} do Episódio ${ep}${mud.publicaEm ? ', com a data do episódio' : ''}.`);
+}
+/* ESCOLHER PROJETO DO ANIMADOR (lista da nuvem do Animador, com as pastas dele e busca).
+   alvo = { ep, k, nome } (parte que ainda não existe: cria o cartão ou usa o que já aponta para o projeto) | { item } (cartão existente: passa a apontar para o projeto). */
+async function escolheProjeto(alvo) {
+  const W = janela(`<h3>${alvo.item ? 'Projeto do Animador deste cartão' : `Qual projeto é a Parte ${alvo.k} do Episódio ${alvo.ep}?`}</h3><p class="nota">Projetos da nuvem do Animador, nas pastas dele.</p><input type="text" data-q placeholder="Buscar pelo nome" style="width:100%;margin:6px 0"><div class="ep-esc-l"><p class="nota">Carregando…</p></div><div class="pes"><button class="bt perigo" data-c>Cancelar</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha; const lista = W.J.querySelector('.ep-esc-l'), q = W.J.querySelector('[data-q]');
+  let P; try { P = await carregaProj(); } catch (er) { lista.innerHTML = `<p class="erro">Não consegui abrir a lista do Animador: ${esc(er.message)}</p>`; return; }
+  const parecem = new Set(alvo.ep ? projDaParte(alvo.ep, alvo.k).map(p => p.id) : []);
+  const pastaDe = p => P.pastas.de[p.id] || 'Animações';
+  const pinta2 = () => { const t = semAc(q.value.trim()), L2 = P.lista.filter(p => !t || semAc(p.nome).includes(t)).sort((a, b) => (parecem.has(b.id) ? 1 : 0) - (parecem.has(a.id) ? 1 : 0) || b.mod - a.mod);
+    const grupos = new Map(); for (const p of L2) { const g = parecem.has(p.id) ? 'Parecem esta parte' : pastaDe(p); (grupos.get(g) || grupos.set(g, []).get(g)).push(p); }
+    const ordem = [...grupos.keys()].sort((a, b) => a === 'Parecem esta parte' ? -1 : b === 'Parecem esta parte' ? 1 : (P.pastas.pastas.indexOf(a) + 1 || 999) - (P.pastas.pastas.indexOf(b) + 1 || 999));
+    lista.innerHTML = L2.length ? ordem.map(g => `<h4>${esc(g)}</h4>${grupos.get(g).map(p => { const uso = projEmUso(p.id); return `<button class="ep-esc-i" data-proj-id="${esc(p.id)}"><span class="nome">${esc(p.nome || '(sem nome)')}</span><span class="pil-st">${new Date(p.mod).toLocaleDateString('pt-BR')}${NOME_PROJ_RUIM.test(p.nome) ? ' · versão antiga' : ''}${uso ? ' · já tem cartão' : ''}</span></button>`; }).join('')}`).join('') : '<p class="nota">Nenhum projeto encontrado.</p>';
+    lista.querySelectorAll('[data-proj-id]').forEach(b => b.onclick = async () => { const p = P.lista.find(x => x.id === b.dataset.projId); if (!p) return; W.fecha(); await ligaProjeto(alvo, p); }); };
+  q.oninput = pinta2; pinta2(); q.focus();
+}
+async function ligaProjeto(alvo, p) {
+  const abrir = '/animador/?nuvem=' + p.id, proj = { id: p.id, nome: p.nome.slice(0, 100) };
+  if (alvo.item) { await grava(alvo.item, { programa: 'animador', abrir, proj }, `Projeto "${p.nome}" ligado ao cartão.`); return; }
+  const ja = projEmUso(p.id); // já tem cartão apontando para esse projeto: ele vira a parte
+  if (ja) { if (!podeMover(ja)) return toast('Esse cartão é de outra pessoa e a sua conta não pode organizá-lo.'); await ligaItemAoEp(ja, alvo.ep, alvo.k); return; }
+  try { await salvaItem(itemDeParte(alvo.ep, alvo.k, { id: ('an' + p.id).slice(0, 20), titulo: p.nome.slice(0, 100), programa: 'animador', abrir, proj })); toast(`"${p.nome}" é a Parte ${alvo.k} do Episódio ${alvo.ep}.`); } catch (er) { toast('Não consegui ligar: ' + er.message, '#ff6b5b'); }
 }
 const cartoesPorFormato = (lista, f) => {
   if (f !== 'todos' || lista.some(i => i._local)) return cardsDe(lista);
@@ -632,13 +729,6 @@ const cartoesPorFormato = (lista, f) => {
   return `<div class="sec-fmt">Shorts</div>${cardsDe(sh)}<div class="sec-fmt">Vídeos longos</div>${cardsDe(lo)}`;
 };
 // dia do episódio: o da primeira parte que sai; as partes SEM dia ficam com o dia escolhido, as que já têm continuam
-function marcaDiaEp(ep) {
-  const ps = itensTodos().filter(i => { const e = episodioDe(i); return e && e.ep === ep; }), sem = ps.filter(i => !i.publicaEm && podeMover(i) && ['concluido', 'pedido'].includes(faixaDe(i)));
-  if (!sem.length) return toast('Todas as partes já têm dia. Mude o dia de uma parte clicando nela.');
-  const W = janela(`<h3>Dia do Episódio ${ep}</h3><p>As ${sem.length} partes sem dia ficam com este dia. As que já têm dia continuam como estão.</p><div class="pes"><input type="datetime-local" data-em value="${emLocal(Date.now() + 864e5)}" style="flex:1"></div><div class="pes"><button class="bt" data-c>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>`);
-  W.J.querySelector('[data-c]').onclick = W.fecha;
-  W.J.querySelector('[data-ok]').onclick = async () => { const t = new Date(W.J.querySelector('[data-em]').value).getTime(); if (!t) return toast('Escolha o dia e a hora.'); W.fecha(); let n = 0; for (const i of sem) if (await grava(i, { publicaEm: t })) n++; if (n) toast(`${n} partes ficaram com o dia ${ddmm(t)}.`); };
-}
 const ordem = fx => fx === 'agendado' || fx === 'pedido' ? (a, b) => quando(a) - quando(b) : fx === 'concluido' ? (a, b) => (a.publicaEm || 9e15) - (b.publicaEm || 9e15) || b.enviadoEm - a.enviadoEm : (a, b) => quando(b) - quando(a);
 function pinta() {
   const I = itensTodos().filter(passa), loc = soltos().map(v => ({ ...v, _local: true }));
@@ -659,7 +749,7 @@ function pinta() {
     const f = F.piv, H = I.filter(i => ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
     const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fh') : ''}<b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'} · ${faixaDe(i) === 'noAr' ? 'no ar' : atrasado(i) ? 'atrasado' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje.</div>`}</div>`;
     const IL = DIA ? I.filter(i => dataAgenda(i) && mesmoDia(dataAgenda(i), DIA)) : I; // com um dia escolhido, só os itens dele
-    const EPL = gruposEp(IL), laneOf = i => { const e = episodioDe(i), l = e && EPL.get(e.ep); return l ? l.map(p => laneDe(p.i)).sort((a, b) => ORDEM_LANE.indexOf(a) - ORDEM_LANE.indexOf(b))[0] : laneDe(i); };
+    const EPL = gruposEp(IL), laneOf = i => { const e = episodioDe(i), l = e && EPL.get(e.ep); if (!l) return laneDe(i); const ls = l.map(p => laneDe(p.i)), ls2 = ls.some(x => x !== 'semData') ? ls.filter(x => x !== 'semData') : ls; return ls2.sort((a, b) => ORDEM_LANE.indexOf(a) - ORDEM_LANE.indexOf(b))[0]; };
     const faixas = FAIXAS.map(([k, n, d]) => {
       const lista = k === 'local' ? (DIA ? [] : loc).filter(v => fmtOk(formatoLocal(v), f)) : IL.filter(i => fmtOk(formatoDe(i), f) && laneOf(i) === k).sort(ordem(k === 'semData' ? 'concluido' : k));
       if (k === 'local' && !lista.length) return '';
@@ -794,41 +884,25 @@ async function moverPara(a, alvo) {
 }
 /* PARTE QUE AINDA NÃO EXISTE (pedido da dona, 17/11/2026): "criar o roteiro novo" OU "escolher um cartão que já existe" (um cartão do Publicações, também os que vieram de projetos do Animador).
    Escolher grava no PRÓPRIO cartão a ligação item.ep = { n: episódio, parte } (servidor guarda; vale para a equipe toda). "Separar deste episódio" tira. */
-function escolheParte(ep, k, nome) {
-  const W = janela(`<h3>Parte ${k} do Episódio ${ep}</h3><p>Como você quer ter a Parte ${k}?</p><div class="pes" style="flex-direction:column;align-items:stretch;gap:8px"><button class="bt pri" data-novo>Criar um roteiro novo (${esc(nome)})</button><button class="bt" data-existe>Escolher um cartão que já existe</button><button class="bt perigo" data-c>Cancelar</button></div>`);
-  W.J.querySelector('[data-c]').onclick = W.fecha;
-  W.J.querySelector('[data-novo]').onclick = () => { W.fecha(); try { parent.postMessage({ ep: 'novo-roteiro', nome }, location.origin); } catch { toast('Abra o Preparativos para criar o roteiro.'); } };
-  W.J.querySelector('[data-existe]').onclick = () => { W.fecha(); listaParte(ep, k); };
-}
-function listaParte(ep, k) {
-  const cand = itensTodos().filter(i => !i._local && !i._ideia && !episodioDe(i) && podeMover(i)).sort((a, b) => (laneDe(a) === 'semData' ? 0 : 1) - (laneDe(b) === 'semData' ? 0 : 1) || String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'));
-  const W = janela(`<h3>Qual cartão é a Parte ${k} do Episódio ${ep}?</h3><p class="nota">Só aparecem cartões que ainda não estão em nenhum episódio e que a sua conta pode organizar. A ligação vale para a equipe toda.</p><input type="text" data-q placeholder="Buscar pelo título" style="width:100%;margin:6px 0"><div class="ep-esc-l"></div><div class="pes"><button class="bt perigo" data-c>Cancelar</button></div>`);
-  const lista = W.J.querySelector('.ep-esc-l'), q = W.J.querySelector('[data-q]');
-  const pinta2 = () => { const t = semAc(q.value.trim()), L2 = cand.filter(i => !t || semAc(i.titulo).includes(t));
-    lista.innerHTML = L2.length ? L2.map(i => `<button class="ep-esc-i" data-esc="${esc(i.id)}"><span class="nome">${esc(i.titulo || '(sem título)')}</span><span class="pil-st" style="--e:${ETAPAS[etapaDe(i)][1]}">${esc(NOMEF[laneDe(i)] || '')} · ${esc(ETAPAS[etapaDe(i)][0])}</span></button>`).join('') : '<p class="nota">Nenhum cartão encontrado.</p>';
-    lista.querySelectorAll('[data-esc]').forEach(b => b.onclick = async () => { const i = cand.find(x => x.id === b.dataset.esc); if (!i) return; W.fecha(); await grava(i, { ep: { n: ep, parte: k } }, `"${i.titulo}" agora é a Parte ${k} do Episódio ${ep}.`); }); };
-  q.oninput = pinta2; pinta2(); W.J.querySelector('[data-c]').onclick = W.fecha; q.focus();
-}
 // MOVER O EPISÓDIO INTEIRO (arrastar o cartão do episódio): formato, dia e Sem data valem para todas as partes; as partes mantêm a distância de dias entre elas
 const dia0 = t => { const x = new Date(t); x.setHours(0, 0, 0, 0); return +x; };
 async function moverEp(ep, alvo) {
-  const todas = itensTodos().filter(i => { const e = episodioDe(i); return e && e.ep === ep; }), ps = todas.filter(podeMover);
+  const ps = partesDoEp(ep).filter(podeMover);
   if (!ps.length) return toast('Sua conta não pode organizar este episódio.');
   if (alvo.formato) { const f = alvo.formato, fa = ps.filter(i => formatoDe(i) !== f); if (!fa.length) return; let n = 0; for (const i of fa) if (await grava(i, { formato: f })) n++; if (n) toast(`O Episódio ${ep} (${n} parte${n > 1 ? 's' : ''}) foi para ${f === 'short' ? 'Shorts' : 'Vídeos longos'}.`); return; }
-  if (alvo.dia) {
+  if (alvo.dia) { // UMA data só: todas as partes ficam no dia solto, com a hora do episódio (ou 12:00)
     const mov = ps.filter(i => ['concluido', 'pedido', 'agendado'].includes(faixaDe(i)));
     if (!mov.length) return toast('Essas partes já estão no YouTube: mude o dia de cada uma clicando nela.');
-    const comData = mov.filter(i => dataAgenda(i)), d0 = comData.length ? Math.min(...comData.map(i => dia0(dataAgenda(i)))) : null, alvoDia = new Date(alvo.dia); alvoDia.setHours(0, 0, 0, 0);
-    const novos = mov.map(i => { const t = dataAgenda(i), d = new Date(alvoDia); if (!t) d.setHours(12, 0, 0, 0); else { const o = new Date(t); d.setDate(d.getDate() + Math.round((dia0(t) - d0) / 864e5)); d.setHours(o.getHours(), o.getMinutes(), 0, 0); } return { i, d: +d }; }).filter(x => !(dataAgenda(x.i) && mesmoDia(x.d, dataAgenda(x.i)) && dia0(x.d) === dia0(dataAgenda(x.i))));
-    if (!novos.length) return;
-    if (novos.some(x => faixaDe(x.i) === 'agendado' && x.d < Date.now() + 5 * 60e3)) return toast('Esse dia já passou para uma parte agendada: escolha um dia no futuro.');
-    if (new Set(novos.map(x => dia0(x.d))).size > 1 && !await confirma(`Mover o Episódio ${ep} inteiro?`, 'As partes mantêm a distância entre elas: ' + novos.map(x => ddmm(x.d)).join(', ') + '.', 'Mover o episódio')) return;
-    let n = 0; for (const x of novos) if (await grava(x.i, { publicaEm: x.d })) n++; if (n) toast(`Episódio ${ep}: ${n} parte${n > 1 ? 's' : ''} para ${ddmm(novos[0].d)}${new Set(novos.map(x => dia0(x.d))).size > 1 ? ' em diante' : ''}.`); return;
+    const atual = dataDoEp(ep), d = new Date(alvo.dia); d.setHours(0, 0, 0, 0); if (atual) { const o = new Date(atual); d.setHours(o.getHours(), o.getMinutes(), 0, 0); } else d.setHours(12, 0, 0, 0);
+    if (mov.some(i => faixaDe(i) === 'agendado') && +d < Date.now() + 5 * 60e3) return toast('Esse dia já passou para uma parte agendada: escolha um dia no futuro.');
+    const faz = mov.filter(i => dataAgenda(i) !== +d); if (!faz.length) return;
+    let n = 0; for (const i of faz) if (await grava(i, { publicaEm: +d })) n++; if (n) toast(`Episódio ${ep}: ${n > 1 ? 'as ' + n + ' partes' : 'a parte'} ${n > 1 ? 'ficaram' : 'ficou'} em ${dataH(+d)}.`); return;
   }
   if (alvo.faixa === 'semData') { const c = ps.filter(i => faixaDe(i) === 'concluido' && i.publicaEm); if (!c.length) return toast('Só as partes prontas (não publicadas) ficam sem data.'); let n = 0; for (const i of c) if (await grava(i, { publicaEm: null })) n++; if (n) toast(`Episódio ${ep}: ${n} parte${n > 1 ? 's' : ''} sem data.`); return; }
   if (alvo.faixa === 'concluido') { if (ps.some(i => !i.publicaEm && faixaDe(i) === 'concluido')) return marcaDiaEp(ep); return; }
   toast('Para agendar ou publicar, abra cada parte (clique nela): cada vídeo tem o seu arquivo e o seu link.');
 }
+
 // grava a mudança de organização (formato, canal, data, situação) de um item da equipe
 async function grava(i, mud, msg) {
   const novo = { ...paraNuvem(i), ...mud };
@@ -859,13 +933,14 @@ function painelMover(i, faixaAlvo, op = {}) {
   const P = painel(op.data ? 'Nova data' : 'Mover');
   const SIT = real ? [['agendado', 'Agendado'], ['naoListado', 'Não listado'], ['noAr', 'Publicado']] : [[fx, fx === 'pedido' ? 'Continua na fila' : 'Continua não publicado'], ['agendado', 'Já agendado no YouTube'], ['naoListado', 'Já não listado'], ['noAr', 'Já publicado']];
   const pi = () => {
-    const viraReal = !real && st.sit !== fx;
+    const viraReal = !real && st.sit !== fx, epGrupo = (() => { const e = episodioDe(i); return e && gruposEp(itensTodos().filter(x => !x._local)).has(e.ep) ? e.ep : 0; })();
     P.B.innerHTML = `<p style="margin-top:0"><b>${esc(i.titulo)}</b><br><span class="nota">${esc(NOMEF[fx])} · ${linhaQuando(i)}</span></p>
       <label class="r">Formato (aba)</label><div class="seg">${[['short', 'Shorts'], ['longo', 'Vídeos longos']].map(([k, n]) => `<button data-f="${k}" class="${st.fmt === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       <label class="r">Canal</label><select data-canal><option value="">${real ? 'Canal…' : 'Ainda não escolhido'}</option>${opcCanais(st.canal, i.canal)}</select>
       <label class="r">Situação</label><div class="seg">${SIT.map(([k, n]) => `<button data-s="${k}" class="${st.sit === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${viraReal ? `<label class="r">Link do vídeo no YouTube</label><input type="text" data-link placeholder="https://youtu.be/…" value="${esc(st.link)}"><div class="nota">Use quando o vídeo já foi enviado pelo YouTube Studio. Para enviar agora, use "Publicar…".</div>` : ''}
       ${st.sit === 'agendado' ? `<label class="r">Sai em</label><input type="datetime-local" data-em value="${esc(st.em)}">`
+        : !real && !viraReal && epGrupo ? `<label class="r">Data</label><div class="nota">A data é do episódio: ${dataDoEp(epGrupo) ? esc(dataH(dataDoEp(epGrupo))) : 'ainda sem data'}. As partes de um episódio têm uma data só. <button class="bt sm" data-ep-dia-p="${epGrupo}">Mudar a data do episódio</button></div>`
         : !real && !viraReal ? `<label class="r">Data planejada (aparece na agenda)</label><div style="display:flex;gap:6px"><input type="datetime-local" data-em value="${esc(st.em)}" style="flex:1"><button class="bt sm" data-semdata>Sem data</button></div>`
         : st.sit === 'noAr' ? `<label class="r">Saiu em (opcional)</label><input type="datetime-local" data-em value="${esc(st.em)}">` : ''}
       ${real ? `<div class="aviso" style="margin-top:16px">Isto muda só a organização do Estúdio. No YouTube, mude também pelo <a href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener" style="color:#5ac8fa">Studio</a>.</div>` : ''}
@@ -876,6 +951,7 @@ function painelMover(i, faixaAlvo, op = {}) {
     $$('[data-s]', P.B).forEach(b => b.onclick = () => { st.sit = b.dataset.s; st.erro = ''; pi(); });
     P.B.querySelector('[data-canal]').onchange = e => { st.canal = e.target.value; };
     const em = P.B.querySelector('[data-em]'); if (em) em.onchange = () => { st.em = em.value; };
+    P.B.querySelector('[data-ep-dia-p]')?.addEventListener('click', e => { P.fecha(); marcaDiaEp(+e.currentTarget.dataset.epDiaP); });
     const sd = P.B.querySelector('[data-semdata]'); if (sd) sd.onclick = () => { st.em = ''; pi(); };
     const lk = P.B.querySelector('[data-link]'); if (lk) lk.oninput = () => { st.link = lk.value; };
     P.B.querySelector('[data-c]').onclick = P.fecha;
@@ -931,6 +1007,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
   if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
+  if (d.projItem !== undefined) { const i = itensTodos().find(x => x.id === d.projItem); if (i) escolheProjeto({ item: i }); return; }
   if (d.epSep !== undefined) { const i = itensTodos().find(x => x.id === d.epSep); if (!i) return; if (i.ep && podeMover(i)) { await grava(i, { ep: null }, 'A parte saiu do episódio.'); return; } try { const m = epManual(); m[prepIdDe(i) || i.id] = null; localStorage.setItem('ep-episodios-manual', JSON.stringify(m)); } catch { } toast('A parte saiu do episódio (só neste navegador).'); pinta(); return; }
   if (d.epCria !== undefined) { const ep = +d.epCria, k = +d.parte, ps = itensTodos().map(i => ({ i, e: episodioDe(i) })).filter(x => x.e && x.e.ep === ep).sort((a, b) => a.e.parte - b.e.parte), nome = nomeDaParte(ps, ep, k);
     escolheParte(ep, k, nome); return; }

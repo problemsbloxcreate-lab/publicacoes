@@ -317,6 +317,14 @@ html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
 .ep-esc-i{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--linha,rgba(255,255,255,.1));border-radius:8px;background:var(--fundo-2,transparent);color:var(--texto,inherit);font:inherit;cursor:pointer}
 .card .pil-st.falta{color:var(--aviso,#f0a30a)}.card .pil-st.falta::before{display:none}.toast .lk{color:var(--acento,#5ac8fa);margin-left:8px}
 .ep-pt .pil-st.falta{color:var(--aviso,#f0a30a)}.ep-pt .pil-st.falta::before{display:none}
+.card,.ep-card{position:relative}
+.resp{position:absolute;right:8px;top:8px;z-index:3;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;overflow:hidden;background:var(--fundo-4,#444);color:var(--texto,#fff);box-shadow:0 0 0 2px var(--fundo-2,#1e1e21);font:600 12px system-ui}
+.resp img{width:100%;height:100%;object-fit:cover;display:block}.resp b{font:600 12px/1 system-ui}
+.ep-card .resp{right:10px;top:10px}
+.ep-card .tx:has(>.resp){padding-right:34px}
+.ev .resp{position:static;display:inline-grid;width:16px;height:16px;margin-right:5px;vertical-align:-4px;box-shadow:none}.ev .resp b{font-size:9px}.ev .resp img{border-radius:50%}
+.resp-av{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;overflow:hidden;background:var(--fundo-4,#444);flex:none}.resp-av img{width:100%;height:100%;object-fit:cover}.resp-av b{font:600 12px/1 system-ui}
+.resp-op{flex-direction:row!important;align-items:center!important;gap:10px}.resp-op.on{border-color:var(--acento,#5ac8fa)!important;background:var(--acento-suave,rgba(90,200,250,.14))!important}
 .ep-esc-l h4{flex:none;margin:8px 0 2px;font-size:12px;font-weight:600;color:var(--texto-3,#888)}
 .ep-esc-i:hover{background:var(--fundo-3,rgba(255,255,255,.08));border-color:var(--linha-forte,rgba(255,255,255,.2))}
 .ep-esc-i .nome{font-weight:600}.ep-esc-i .pil-st{font-size:12px;color:var(--texto-2,#aaa)}
@@ -404,6 +412,7 @@ html.cel .toast{left:50%;right:auto;bottom:24px;transform:translateX(-50%);backg
   <select id="fCanal" aria-label="Canal"></select>
   <select id="fProg" aria-label="Programa de origem"></select>
   <select id="fQuem" aria-label="Quem enviou"></select>
+  <select id="fResp" aria-label="Responsável"></select>
   <button class="lk" id="fLimpa">Limpar</button>
   <span class="sp"></span>
   <button class="bt ic" id="btAtualizar" title="Buscar a lista de novo" aria-label="Buscar a lista de novo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg></button>
@@ -528,8 +537,38 @@ const IC_PROG = { animador: ['an', 'An'], editor: ['ed', 'Ed'], shorts: ['sh', '
 const progIc = p => { const [id, l] = IC_PROG[p] || IC_PROG.publicacoes; return `<span class="pi" data-estudio-icone="${id}" title="${esc(PROGS[p] || 'Publicações')}"><b>${l}</b></span>`; };
 const quemHtml = u => { const n = NOMES[u]; if (!n) nomeDe(u); return `<span class="quem">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}${esc(n?.nome || '…')}</span>`; };
 
+/* ---------- RESPONSÁVEL (pedido da dona, 17/11/2026) ----------
+   Uma pessoa da equipe como RESPONSÁVEL pelo cartão (item.resp = código da pessoa "u…", nunca e-mail), gravada na nuvem para todos verem; não confundir com "por" (quem enviou).
+   Episódio em partes: o responsável vale para o episódio inteiro, como a data. Marcar nunca trava nada. Filtro "Responsável" nas colunas e no calendário (lembrado neste navegador). */
+const EQ = { eu: '', lista: [], em: 0, pedindo: null };
+const carregaEquipe = () => {
+  if (EQ.lista.length && Date.now() - EQ.em < 300e3) return Promise.resolve(EQ);
+  return EQ.pedindo || (EQ.pedindo = (async () => {
+    const r = await fetch('/mensagens?desde=' + Date.now() + '&pessoas=1', { credentials: 'same-origin', cache: 'no-store' }), j = r.ok ? await r.json() : {};
+    EQ.eu = j.eu || ''; EQ.lista = [...new Set([j.eu, ...(j.pessoas || []).map(p => p.u)].filter(Boolean))]; EQ.em = Date.now();
+    await Promise.all(EQ.lista.map(u => nomeDe(u))); return EQ; })().catch(() => EQ).finally(() => { EQ.pedindo = null; }));
+};
+let equipePedida = false;
+const equipeDeFundo = () => { if (equipePedida) return; equipePedida = true; carregaEquipe().then(() => pinta()).catch(() => { equipePedida = false; }); };
+const respHtml = r => { if (!r) return ''; const n = NOMES[r]; if (!n) nomeDe(r).then(() => pinta()); const nome = n?.nome && n.nome !== '…' ? n.nome : '…';
+  return `<span class="resp" title="Responsável: ${esc(nome)}" aria-label="Responsável: ${esc(nome)}">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : `<b>${esc((nome[0] || '?').toUpperCase())}</b>`}</span>`; };
+const respDoEp = ps => ps.map(p => p.i?.resp).find(Boolean) || '';
+// grava o responsável (ou "ninguém", u = '') em todos os itens da lista
+async function gravaResp(itens, u) {
+  let n = 0; for (const i of itens) if (await grava(i, { resp: u || undefined })) n++;
+  if (n) toast(u ? `Responsável: ${NOMES[u]?.nome || 'pessoa'}${itens.length > 1 ? ' (episódio inteiro)' : ''}.` : 'Sem responsável.');
+}
+async function escolheResp(itens, rotulo) {
+  itens = itens.filter(podeMover); if (!itens.length) return toast('Sua conta não pode organizar este cartão.');
+  const W = janela(`<h3>Responsável</h3><p class="nota">${esc(rotulo)}${itens.length > 1 ? ' O responsável vale para o episódio inteiro.' : ''}</p><div class="ep-esc-l"><p class="nota">Carregando a equipe…</p></div><div class="pes"><button class="bt perigo" data-c>Cancelar</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha; const lista = W.J.querySelector('.ep-esc-l');
+  const eq = await carregaEquipe(); const atual = itens[0].resp || '';
+  const av = u => { const n = NOMES[u]; return `<span class="resp-av">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : `<b>${esc((n?.nome || '?')[0].toUpperCase())}</b>`}</span>`; };
+  lista.innerHTML = `<button class="ep-esc-i resp-op${atual ? '' : ' on'}" data-u=""><span class="resp-av"><b>–</b></span><span class="nome">Ninguém</span></button>` + eq.lista.map(u => `<button class="ep-esc-i resp-op${u === atual ? ' on' : ''}" data-u="${esc(u)}">${av(u)}<span class="nome">${esc(NOMES[u]?.nome || 'Alguém da equipe')}${u === eq.eu ? ' (você)' : ''}</span></button>`).join('');
+  lista.querySelectorAll('[data-u]').forEach(b => b.onclick = async () => { W.fecha(); await gravaResp(itens, b.dataset.u); });
+}
 // ---------- filtros e aba ----------
-const F0 = { piv: 'todos', busca: '', canal: '', prog: '', quem: '', agFmt: 'todos', foco: '', fmt: 'todos', per: 'hoje', ord: 'cresce' };
+const F0 = { piv: 'todos', busca: '', canal: '', prog: '', quem: '', resp: '', agFmt: 'todos', foco: '', fmt: 'todos', per: 'hoje', ord: 'cresce' };
 let F = (() => { try { const v = { ...F0, ...JSON.parse(localStorage.getItem(LSF) || '{}') }; if (!['todos', 'short', 'longo', 'agenda'].includes(v.piv)) v.piv = 'todos'; return v; } catch { return { ...F0 }; } })();
 const fmtOk = (fmt, f) => f === 'todos' || fmt === f;
 let MES = 0; // meses a partir do atual, na agenda
@@ -538,6 +577,7 @@ const passa = i => {
   if (F.canal && (F.canal === '_sem' ? canalDe(i) : canalDe(i)?.id !== F.canal)) return false;
   if (F.prog && (i.programa || 'publicacoes') !== F.prog) return false;
   if (F.quem === 'eu' ? !i.meu : F.quem && i.por !== F.quem) return false;
+  if (F.resp === 'eu' ? !(EQ.eu && i.resp === EQ.eu) : F.resp === '_sem' ? !!i.resp : F.resp && i.resp !== F.resp) return false;
   if (F.busca && !String(i.titulo || '').toLowerCase().includes(F.busca.toLowerCase())) return false;
   return true;
 };
@@ -599,6 +639,7 @@ function cardHtml(i, linha) {
     if (!i._ideia && podeMover(i) && ['concluido', 'pedido'].includes(fx)) ac.push(`<button class="lk" data-proj-item="${esc(i.id)}" title="Liga este cartão a um projeto da nuvem do Animador">Escolher projeto do Animador…</button>`);
     if ((i.meu || L.adm) && !i._ideia) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
+  if (mov && !i._local) ac.push(`<button class="lk" data-resp="${esc(i.id)}" title="Uma pessoa da equipe como responsável por este cartão">${i.resp ? 'Mudar o responsável…' : 'Definir responsável…'}</button>`);
   if (mov) ac.unshift(`<button class="lk" data-mover="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}" style="color:#fff">Mover…</button>`);
   // CARTÃO LIMPO (17/11/2026): fica à vista só o que se usa toda hora; o resto (e quem enviou/mexeu) vai para o menu ⋯
   let acHtml = ac.join('');
@@ -608,7 +649,7 @@ function cardHtml(i, linha) {
     acHtml = p1.join('') + (p2.length || quemInfo ? `<button class="lk mais-bt" data-mais title="Mais ações" aria-label="Mais ações">⋯</button><div class="mm-src" hidden>${quemInfo}${p2.join('')}</div>` : '');
   }
   const fmtChip = linha ? `<span class="chip-fmt">${fmt === 'short' ? 'Short' : 'Vídeo longo'}</span>` : '';
-  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${th}<div class="tx">${tx}</div><div class="ac">${acHtml}</div></div>`;
+  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${respHtml(i.resp)}${th}<div class="tx">${tx}</div><div class="ac">${acHtml}</div></div>`;
 }
 // na aba Todos, cada faixa separa Shorts de Vídeos longos (17/11/2026)
 const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), feitos = new Set(); return lista.map(i => { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) return cardHtml(i); if (feitos.has(e.ep)) return ''; feitos.add(e.ep); return cardEpHtml(e.ep, l); }).join(''); };
@@ -662,7 +703,7 @@ function cardEpHtml(ep, l) {
       `<button class="lk" data-ep-sep="${esc(i.id)}" title="Esta parte deixa de aparecer dentro do episódio e passa a ter a data dela">Separar deste episódio</button>`].join('');
     return `<div class="ep-pt" data-id="${esc(i.id)}" data-tipo="item"${mov && (fx !== 'noAr' || i.semLink) ? ` draggable="true" data-ep-arr="${ep}"` : ''}><button class="ep-ab" data-mover="${esc(i.id)}" data-tipo="item" title="Abrir a Parte ${k + 1}: ${esc(i.titulo)}"><span class="n">Parte ${k + 1}</span><span class="nome">${esc(i.titulo)}</span><span class="pil-st" style="--e:${et[1]}">${esc(et[0])}</span>${i.semLink && ['agendado', 'naoListado', 'noAr'].includes(fx) ? '<span class="pil-st falta">falta o link</span>' : ''}</button><button class="lk mais-bt" data-mais title="Mais ações da Parte ${k + 1}" aria-label="Mais ações da Parte ${k + 1}">⋯</button><div class="mm-src" hidden>${menu}</div></div>`; }).join('');
   const quando = dia ? (atr ? 'o episódio era para sair ' : 'o episódio sai ') + dataH(dia) : '<span class="pil-sd">Sem data</span>';
-  return `<div class="card ep-card${atr ? ' atr' : ''}" style="--c:${atr ? 'var(--atr)' : corEtapa(mais.i)}" data-ep="${ep}"${arrasta ? ` draggable="true" data-ep-arr="${ep}"` : ''}><div class="tx">${atr ? '<span class="selo-atr">atrasado</span>' : ''}<b>Episódio ${ep} · ${faltam.length ? ps.length + ' de ' + maxP : ps.length} partes</b><div class="quando">${quando}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">${dia ? 'Mudar a data do episódio' : 'Marcar dia do episódio'}</button>` : ''}</div></div>`;
+  return `<div class="card ep-card${atr ? ' atr' : ''}" style="--c:${atr ? 'var(--atr)' : corEtapa(mais.i)}" data-ep="${ep}"${arrasta ? ` draggable="true" data-ep-arr="${ep}"` : ''}><div class="tx">${respHtml(respDoEp(ps))}${atr ? '<span class="selo-atr">atrasado</span>' : ''}<b>Episódio ${ep} · ${faltam.length ? ps.length + ' de ' + maxP : ps.length} partes</b><div class="quando">${quando}</div>${faltam.length ? `<div class="ln" style="color:#f0a30a">falta a Parte ${faltam.join(', ')}</div>` : ''}<div class="ep-seg">${seg}</div><div class="ep-partes">${linhas}</div></div><div class="ac">${podeMarcar ? `<button class="lk forte" data-ep-dia="${ep}">${dia ? 'Mudar a data do episódio' : 'Marcar dia do episódio'}</button>` : ''}${ps.some(p => podeMover(p.i)) ? `<button class="lk" data-resp-ep="${ep}" title="Uma pessoa da equipe como responsável pelo episódio inteiro">${respDoEp(ps) ? 'Mudar o responsável…' : 'Definir responsável…'}</button>` : ''}</div></div>`;
 }
 // data do episódio: vale para TODAS as partes (as que já têm data também)
 function marcaDiaEp(ep) {
@@ -748,6 +789,8 @@ function pinta() {
   $('#fCanal').innerHTML = opt('', 'Todos os canais', F.canal) + canaisTodos().map(c => opt(c.id, c.nome, F.canal)).join('') + opt('_sem', 'Sem canal escolhido', F.canal);
   $('#fProg').innerHTML = opt('', 'Todos os programas', F.prog) + progs.map(p => opt(p, PROGS[p] || p, F.prog)).join('');
   $('#fQuem').innerHTML = opt('', 'Toda a equipe', F.quem) + opt('eu', 'Só os meus', F.quem) + pessoas.map(u => opt(u, NOMES[u]?.nome || '…', F.quem)).join('');
+  equipeDeFundo(); { const gente = [...new Set([...EQ.lista, ...(L.itens || []).map(i => i.resp).filter(Boolean)])]; gente.forEach(u => NOMES[u] || nomeDe(u));
+    $('#fResp').innerHTML = opt('', 'Responsável: todos', F.resp) + opt('eu', 'Responsável: eu', F.resp) + gente.filter(u => u !== EQ.eu).map(u => opt(u, NOMES[u]?.nome || '…', F.resp)).join('') + opt('_sem', 'Sem responsável', F.resp); }
   if ($('#fBusca') !== document.activeElement) $('#fBusca').value = F.busca;
   const rolagem = $('.quadro')?.scrollLeft || 0;
   if (F.foco) $('#area').innerHTML = focoHtml(I, loc);
@@ -805,13 +848,13 @@ function agrupaEpCal(lista, todas = lista) {
   const G = gruposEp(todas), feitos = new Set(), out = [];
   for (const i of lista) { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) { out.push(i); continue; } if (feitos.has(e.ep)) continue; feitos.add(e.ep);
     const ps = l.filter(p => dataAgenda(p.i)).sort((a, b) => dataAgenda(a.i) - dataAgenda(b.i)), mais = l.reduce((m, p) => ETAPA_ORD.indexOf(etapaDe(p.i)) < ETAPA_ORD.indexOf(etapaDe(m.i)) ? p : m, l[0]);
-    out.push({ ...ps[0].i, _ep: e.ep, _nPartes: l.length, _mais: mais.i }); }
+    out.push({ ...ps[0].i, _ep: e.ep, _nPartes: l.length, _mais: mais.i, _resp: respDoEp(l) }); }
   return out;
 }
 function evHtml(i) {
-  if (i._ep) { const et = ETAPAS[etapaDe(i._mais)]; return `<button class="ev" style="--cc:${et[1]}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}" title="${esc('Episódio ' + i._ep + ' · ' + i._nPartes + ' partes · primeira parte: ' + i.titulo)}">Episódio ${i._ep} <em>${i._nPartes} partes · ${et[0]}</em></button>`; }
+  if (i._ep) { const et = ETAPAS[etapaDe(i._mais)]; return `<button class="ev" style="--cc:${et[1]}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}" title="${esc('Episódio ' + i._ep + ' · ' + i._nPartes + ' partes · primeira parte: ' + i.titulo)}">${respHtml(i._resp)}Episódio ${i._ep} <em>${i._nPartes} partes · ${et[0]}</em></button>`; }
   const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr', et = ETAPAS[etapaDe(i)];
-  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
+  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${respHtml(i.resp)}${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
 }
 // CALENDÁRIO NO ALTO (pedido da dona, 17/11/2026): duas semanas grandes, com a cor de cada etapa; arrastar um cartão de baixo para um dia marca a data
 let DIA = null; // dia escolhido no calendário (clicar no dia): a lista de baixo mostra só os itens dele
@@ -1009,6 +1052,7 @@ function painelMover(i, faixaAlvo, op = {}) {
     P.B.innerHTML = `<p style="margin-top:0"><b>${esc(i.titulo)}</b><br><span class="nota">${esc(NOMEF[fx])} · ${linhaQuando(i)}</span></p>
       <label class="r">Formato (aba)</label><div class="seg">${[['short', 'Shorts'], ['longo', 'Vídeos longos']].map(([k, n]) => `<button data-f="${k}" class="${st.fmt === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       <label class="r">Canal</label><select data-canal><option value="">${real ? 'Canal…' : 'Ainda não escolhido'}</option>${opcCanais(st.canal, i.canal)}</select>
+      <label class="r">Responsável</label><button type="button" class="bt" data-resp-p>${esc(i.resp ? (NOMES[i.resp]?.nome || '…') : 'Ninguém')}</button>
       <label class="r">Situação</label><div class="seg">${SIT.map(([k, n]) => `<button data-s="${k}" class="${st.sit === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${viraReal ? `<label class="r">Link do vídeo no YouTube</label><input type="text" data-link placeholder="https://youtu.be/…" value="${esc(st.link)}"><div class="nota">Use quando o vídeo já foi enviado pelo YouTube Studio. Para enviar agora, use "Publicar…".</div>` : ''}
       ${st.sit === 'agendado' ? `<label class="r">Sai em</label><input type="datetime-local" data-em value="${esc(st.em)}">`
@@ -1022,6 +1066,7 @@ function painelMover(i, faixaAlvo, op = {}) {
     $$('[data-f]', P.B).forEach(b => b.onclick = () => { st.fmt = b.dataset.f; pi(); });
     $$('[data-s]', P.B).forEach(b => b.onclick = () => { st.sit = b.dataset.s; st.erro = ''; pi(); });
     P.B.querySelector('[data-canal]').onchange = e => { st.canal = e.target.value; };
+    P.B.querySelector('[data-resp-p]')?.addEventListener('click', () => { P.fecha(); const e = episodioDe(i), g = e && gruposEp(itensTodos().filter(x => !x._local)).get(e.ep); escolheResp(g ? partesDoEp(e.ep) : [i], i.titulo); });
     const em = P.B.querySelector('[data-em]'); if (em) em.onchange = () => { st.em = em.value; };
     P.B.querySelector('[data-ep-dia-p]')?.addEventListener('click', e => { P.fecha(); marcaDiaEp(+e.currentTarget.dataset.epDiaP); });
     const sd = P.B.querySelector('[data-semdata]'); if (sd) sd.onclick = () => { st.em = ''; pi(); };
@@ -1079,6 +1124,8 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco],[data-ep-dia]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
   if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
+  if (d.resp !== undefined) { const i = itensTodos().find(x => x.id === d.resp); if (i) { const e = episodioDe(i), g = e && gruposEp(itensTodos().filter(x => !x._local)).get(e.ep); escolheResp(g ? partesDoEp(e.ep) : [i], i.titulo); } return; }
+  if (d.respEp !== undefined) { escolheResp(partesDoEp(+d.respEp), 'Episódio ' + d.respEp); return; }
   if (d.baixarItem !== undefined) { baixaItem(itensTodos().find(x => x.id === d.baixarItem)); return; }
   if (d.colar !== undefined) { pedeLinksLista([d.colar]); return; }
   if (d.epLinks !== undefined) { const i = itensTodos().find(x => x.id === d.epLinks), e = i && episodioDe(i); if (e) pedeLinksEp(e.ep, [i.id]); return; }
@@ -1113,7 +1160,7 @@ document.addEventListener('click', async e => {
   else if (d.tira) { const i = L.itens.find(x => x.id === d.tira); if (!i || !await confirma('Tirar da lista?', i.concluido ? `Tirar "${i.titulo}" de Não publicados?` : i.pedido ? `Tirar "${i.titulo}" da fila da equipe?` : `Tirar "${i.titulo}" da lista do Estúdio? No YouTube o vídeo continua como está.`, 'Tirar', true)) return; b.disabled = true; try { guardaL(await pede('/publicacoes?id=' + encodeURIComponent(i.id), { method: 'DELETE' })); } catch (er) { toast(er.message, '#ff6b5b'); } pinta(); }
 });
 $('#fBusca').oninput = e => { F.busca = e.target.value; guardaF(); pinta(); };
-[['#fCanal', 'canal'], ['#fProg', 'prog'], ['#fQuem', 'quem']].forEach(([s, k]) => $(s).onchange = e => { F[k] = e.target.value; guardaF(); pinta(); });
+[['#fCanal', 'canal'], ['#fProg', 'prog'], ['#fQuem', 'quem'], ['#fResp', 'resp']].forEach(([s, k]) => $(s).onchange = e => { F[k] = e.target.value; guardaF(); pinta(); });
 $('#fLimpa').onclick = () => { F = { ...F0, piv: F.piv, agFmt: F.agFmt }; guardaF(); pinta(); };
 $('#btAtualizar').onclick = () => { buscar(true); carregaLocais(); };
 

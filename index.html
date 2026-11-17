@@ -322,6 +322,16 @@ html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
 .resp img{width:100%;height:100%;object-fit:cover;display:block}.resp b{font:600 12px/1 system-ui}
 .ep-card .resp{left:10px;top:10px}
 .ep-card .tx:has(>.resp){padding-left:34px}
+.ev-resp{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;font-weight:600;color:var(--texto-2,#c9cbd1);white-space:nowrap;overflow:hidden}.ev-resp>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.resp-av.s{width:18px;height:18px}.resp-av.s b{font-size:10px}
+#fResp[hidden]{display:none}
+.fresp{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 8px;background:rgba(255,255,255,.88);color:#000;border:2px solid transparent;cursor:pointer;max-width:100%}
+.fresp .fr-t{white-space:nowrap}.fresp .fr-seta{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7;margin-left:2px}
+html.cel .fresp{height:var(--alt-controle);background:var(--fundo-3);color:var(--texto);border:1px solid transparent;border-radius:var(--raio-controle);padding:0 10px;font:400 var(--t-corpo) var(--fonte)}
+html.cel .fresp:hover{background:var(--fundo-4)}html.cel .fresp:focus-visible,.fresp[aria-expanded=true]{border-color:var(--acento);box-shadow:0 0 0 3px var(--acento-suave)}
+.fresp-lista{position:fixed;z-index:9000;max-height:min(360px,60vh);overflow:auto;padding:6px;background:var(--elevado,#26272c);color:var(--texto,#fff);border:1px solid var(--linha,rgba(255,255,255,.12));border-radius:var(--raio-controle,8px);box-shadow:0 12px 32px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:2px}
+.fresp-i{display:flex;align-items:center;gap:9px;min-height:34px;padding:4px 10px;border:0;border-radius:6px;background:none;color:inherit;text-align:left;cursor:pointer;white-space:nowrap}
+.fresp-i:hover{background:var(--fundo-4,rgba(255,255,255,.08))}.fresp-i.on{background:var(--acento-suave,rgba(90,200,250,.16))}
 .ev .resp{position:static;display:inline-grid;width:16px;height:16px;margin-right:5px;vertical-align:-4px;box-shadow:none}.ev .resp b{font-size:9px}.ev .resp img{border-radius:50%}
 .resp-av{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;overflow:hidden;background:var(--fundo-4,#444);flex:none}.resp-av img{width:100%;height:100%;object-fit:cover}.resp-av b{font:600 12px/1 system-ui}
 .resp-op{flex-direction:row!important;align-items:center!important;gap:10px}.resp-op.on{border-color:var(--acento,#5ac8fa)!important;background:var(--acento-suave,rgba(90,200,250,.14))!important}
@@ -412,7 +422,7 @@ html.cel .toast{left:50%;right:auto;bottom:24px;transform:translateX(-50%);backg
   <select id="fCanal" aria-label="Canal"></select>
   <select id="fProg" aria-label="Programa de origem"></select>
   <select id="fQuem" aria-label="Quem enviou"></select>
-  <select id="fResp" aria-label="Responsável"></select>
+  <select id="fResp" aria-label="Responsável" hidden></select><button type="button" class="fresp" id="fRespBt" aria-haspopup="listbox" aria-label="Filtrar por responsável"></button>
   <button class="lk" id="fLimpa">Limpar</button>
   <span class="sp"></span>
   <button class="bt ic" id="btAtualizar" title="Buscar a lista de novo" aria-label="Buscar a lista de novo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg></button>
@@ -552,6 +562,27 @@ let equipePedida = false;
 const equipeDeFundo = () => { if (equipePedida) return; equipePedida = true; carregaEquipe().then(() => pinta()).catch(() => { equipePedida = false; }); };
 const respHtml = r => { if (!r) return ''; const n = NOMES[r]; if (!n) nomeDe(r).then(() => pinta()); const nome = n?.nome && n.nome !== '…' ? n.nome : '…';
   return `<span class="resp" title="Responsável: ${esc(nome)}" aria-label="Responsável: ${esc(nome)}">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : `<b>${esc((nome[0] || '?').toUpperCase())}</b>`}</span>`; };
+const respAv = (u, cls = '') => { const n = NOMES[u]; return `<span class="resp-av ${cls}">${n?.foto ? `<img src="${esc(n.foto)}" alt="">` : `<b>${esc((n?.nome && n.nome !== '…' ? n.nome : '?')[0].toUpperCase())}</b>`}</span>`; };
+// calendário: foto + primeiro nome do responsável, numa linha acima do título
+const respPill = r => { if (!r) return ''; const n = NOMES[r]; if (!n) nomeDe(r).then(() => pinta()); const nome = n?.nome && n.nome !== '…' ? n.nome : '…';
+  return `<span class="ev-resp" title="Responsável: ${esc(nome)}">${respAv(r, 's')}<span>${esc(nome.split(/\s+/)[0])}</span></span>`; };
+// filtro "Responsável" com a foto ao lado (a lista nativa não mostra imagem): botão + lista própria; o <select id="fResp"> escondido guarda o valor
+function pintaFiltroResp() {
+  const bt = $('#fRespBt'), sel = $('#fResp'); if (!bt || !sel) return; const v = F.resp;
+  const rot = v === '' ? '<span class="fr-t">Responsável: todos</span>' : v === '_sem' ? '<span class="fr-t">Sem responsável</span>'
+    : `${respAv(v === 'eu' ? EQ.eu : v, 's')}<span class="fr-t">${v === 'eu' ? 'Responsável: eu' : esc((NOMES[v]?.nome || '…').split(/\s+/)[0])}</span>`;
+  if (bt.dataset.k !== v + '|' + rot) { bt.dataset.k = v + '|' + rot; bt.innerHTML = rot + '<svg class="fr-seta" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'; }
+}
+function abreFiltroResp(bt) {
+  document.querySelector('.fresp-lista')?.remove(); const eq = [...sel_gente()]; const L2 = document.createElement('div'); L2.className = 'fresp-lista'; L2.setAttribute('role', 'listbox');
+  const it = (v, html, nome) => `<button type="button" role="option" class="fresp-i${F.resp === v ? ' on' : ''}" data-v="${esc(v)}">${html}<span>${esc(nome)}</span></button>`;
+  L2.innerHTML = it('', '<span class="resp-av s"><b>·</b></span>', 'Todos os responsáveis') + (EQ.eu ? it('eu', respAv(EQ.eu, 's'), 'Eu') : '') + eq.filter(u => u !== EQ.eu).map(u => it(u, respAv(u, 's'), NOMES[u]?.nome || '…')).join('') + it('_sem', '<span class="resp-av s"><b>–</b></span>', 'Sem responsável');
+  document.body.appendChild(L2); const r = bt.getBoundingClientRect(); L2.style.left = Math.round(r.left) + 'px'; L2.style.top = Math.round(r.bottom + 4) + 'px'; L2.style.minWidth = Math.round(r.width) + 'px';
+  const fecha = () => { L2.remove(); document.removeEventListener('pointerdown', fora, true); removeEventListener('keydown', tecla); }, fora = e => { if (!L2.contains(e.target) && e.target !== bt && !bt.contains(e.target)) fecha(); }, tecla = e => { if (e.key === 'Escape') fecha(); };
+  setTimeout(() => document.addEventListener('pointerdown', fora, true), 0); addEventListener('keydown', tecla);
+  L2.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { fecha(); const s = $('#fResp'); s.value = b.dataset.v; s.dispatchEvent(new Event('change', { bubbles: true })); });
+}
+const sel_gente = () => new Set([...EQ.lista, ...(L.itens || []).map(i => i.resp).filter(Boolean)]);
 const respDoEp = ps => ps.map(p => p.i?.resp).find(Boolean) || '';
 // grava o responsável (ou "ninguém", u = '') em todos os itens da lista
 async function gravaResp(itens, u) {
@@ -791,6 +822,7 @@ function pinta() {
   $('#fQuem').innerHTML = opt('', 'Toda a equipe', F.quem) + opt('eu', 'Só os meus', F.quem) + pessoas.map(u => opt(u, NOMES[u]?.nome || '…', F.quem)).join('');
   equipeDeFundo(); { const gente = [...new Set([...EQ.lista, ...(L.itens || []).map(i => i.resp).filter(Boolean)])]; gente.forEach(u => NOMES[u] || nomeDe(u));
     $('#fResp').innerHTML = opt('', 'Responsável: todos', F.resp) + opt('eu', 'Responsável: eu', F.resp) + gente.filter(u => u !== EQ.eu).map(u => opt(u, NOMES[u]?.nome || '…', F.resp)).join('') + opt('_sem', 'Sem responsável', F.resp); }
+  pintaFiltroResp();
   if ($('#fBusca') !== document.activeElement) $('#fBusca').value = F.busca;
   const rolagem = $('.quadro')?.scrollLeft || 0;
   if (F.foco) $('#area').innerHTML = focoHtml(I, loc);
@@ -852,9 +884,9 @@ function agrupaEpCal(lista, todas = lista) {
   return out;
 }
 function evHtml(i) {
-  if (i._ep) { const et = ETAPAS[etapaDe(i._mais)]; return `<button class="ev" style="--cc:${et[1]}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}" title="${esc('Episódio ' + i._ep + ' · ' + i._nPartes + ' partes · primeira parte: ' + i.titulo)}">${respHtml(i._resp)}Episódio ${i._ep} <em>${i._nPartes} partes · ${et[0]}</em></button>`; }
+  if (i._ep) { const et = ETAPAS[etapaDe(i._mais)]; return `<button class="ev" style="--cc:${et[1]}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}" title="${esc('Episódio ' + i._ep + ' · ' + i._nPartes + ' partes · primeira parte: ' + i.titulo)}">${respPill(i._resp)}Episódio ${i._ep} <em>${i._nPartes} partes · ${et[0]}</em></button>`; }
   const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr', et = ETAPAS[etapaDe(i)];
-  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${respHtml(i.resp)}${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
+  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${respPill(i.resp)}${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
 }
 // CALENDÁRIO NO ALTO (pedido da dona, 17/11/2026): duas semanas grandes, com a cor de cada etapa; arrastar um cartão de baixo para um dia marca a data
 let DIA = null; // dia escolhido no calendário (clicar no dia): a lista de baixo mostra só os itens dele
@@ -1161,6 +1193,7 @@ document.addEventListener('click', async e => {
 });
 $('#fBusca').oninput = e => { F.busca = e.target.value; guardaF(); pinta(); };
 [['#fCanal', 'canal'], ['#fProg', 'prog'], ['#fQuem', 'quem'], ['#fResp', 'resp']].forEach(([s, k]) => $(s).onchange = e => { F[k] = e.target.value; guardaF(); pinta(); });
+$('#fRespBt').onclick = e => { if (document.querySelector('.fresp-lista')) document.querySelector('.fresp-lista').remove(); else abreFiltroResp(e.currentTarget); };
 $('#fLimpa').onclick = () => { F = { ...F0, piv: F.piv, agFmt: F.agFmt }; guardaF(); pinta(); };
 $('#btAtualizar').onclick = () => { buscar(true); carregaLocais(); };
 

@@ -311,6 +311,10 @@ html.cel .ep-pt.vz{width:100%;border:1px dashed color-mix(in srgb,var(--aviso) 5
 html.cel .ep-pt.vz:hover{background:color-mix(in srgb,var(--aviso) 10%,transparent)}
 html.cel .ep-pt.vz .pil-st.criar{color:var(--acento);font-weight:600}html.cel .ep-pt.vz .pil-st.criar::before{display:none}
 html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
+.ep-esc-l{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto;margin:6px 0 10px}
+.ep-esc-i{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--linha,rgba(255,255,255,.1));border-radius:8px;background:var(--fundo-2,transparent);color:var(--texto,inherit);font:inherit;cursor:pointer}
+.ep-esc-i:hover{background:var(--fundo-3,rgba(255,255,255,.08));border-color:var(--linha-forte,rgba(255,255,255,.2))}
+.ep-esc-i .nome{font-weight:600}.ep-esc-i .pil-st{font-size:12px;color:var(--texto-2,#aaa)}
 html.cel .ep-card .tx{grid-template-columns:minmax(0,1fr)}html.cel .ep-card .ep-partes,html.cel .ep-card .ep-seg{min-width:0}html.cel .ep-pt{min-width:0}
 html.cel .ep-pt.vz{flex-wrap:wrap;row-gap:0}html.cel .ep-pt.vz .nome{white-space:normal;flex:1 1 70px}html.cel .ep-pt.vz .pil-st.criar{margin-left:auto}
 html.cel .faixa>h2 i,html.cel .faixa>h2 .abre{font:400 var(--t-legenda) var(--fonte);color:var(--texto-3)}
@@ -489,7 +493,7 @@ const itensTodos = () => { const reais = L.itens || [], ids = new Set(reais.map(
 const semAc = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const RE_EP = /(?:^|[^a-z0-9])(?:episodio|epis|ep)\s*\.?\s*(\d{1,3})\b[^0-9]{0,15}?\b(?:parte|part|pt|p)\s*\.?\s*(\d{1,2})\b/;
 const epManual = () => { try { return JSON.parse(localStorage.getItem('ep-episodios-manual') || '{}') || {}; } catch { return {}; } };
-const episodioDe = i => { if (!i || i._local || i._ideia) return null; const m = epManual()[prepIdDe(i) || i.id]; if (m === null) return null; if (m && m.ep > 0) return { ep: +m.ep, parte: +m.parte || 0 }; const r = RE_EP.exec(semAc(i.titulo)); return r ? { ep: +r[1], parte: +r[2] } : null; };
+const episodioDe = i => { if (!i || i._local || i._ideia) return null; const m = epManual()[prepIdDe(i) || i.id]; if (m === null) return null; if (m && m.ep > 0) return { ep: +m.ep, parte: +m.parte || 0 }; if (i.ep && +i.ep.n > 0) return { ep: +i.ep.n, parte: +i.ep.parte || 0 }; /* ligação gravada no item, vale para a equipe */ const r = RE_EP.exec(semAc(i.titulo)); return r ? { ep: +r[1], parte: +r[2] } : null; };
 const gruposEp = lista => { const m = new Map(); for (const i of lista) { const e = episodioDe(i); if (e) { const l = m.get(e.ep) || []; l.push({ i, e }); m.set(e.ep, l); } } for (const [k, l] of [...m]) if (l.length < 2) m.delete(k); return m; };
 const ORDEM_LANE = ['semData', 'concluido', 'pedido', 'agendado', 'naoListado', 'noAr'];
 const ETAPA_ORD = ['ideia', 'roteiro', 'audio', 'anim', 'pronto'];
@@ -788,6 +792,23 @@ async function moverPara(a, alvo) {
   if (alvo.faixa === 'concluido') return toast('Um pedido da fila sai pelo "Tirar" (quem pediu) ou é publicado.');
   painelMover(i, alvo.faixa);
 }
+/* PARTE QUE AINDA NÃO EXISTE (pedido da dona, 17/11/2026): "criar o roteiro novo" OU "escolher um cartão que já existe" (um cartão do Publicações, também os que vieram de projetos do Animador).
+   Escolher grava no PRÓPRIO cartão a ligação item.ep = { n: episódio, parte } (servidor guarda; vale para a equipe toda). "Separar deste episódio" tira. */
+function escolheParte(ep, k, nome) {
+  const W = janela(`<h3>Parte ${k} do Episódio ${ep}</h3><p>Como você quer ter a Parte ${k}?</p><div class="pes" style="flex-direction:column;align-items:stretch;gap:8px"><button class="bt pri" data-novo>Criar um roteiro novo (${esc(nome)})</button><button class="bt" data-existe>Escolher um cartão que já existe</button><button class="bt perigo" data-c>Cancelar</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha;
+  W.J.querySelector('[data-novo]').onclick = () => { W.fecha(); try { parent.postMessage({ ep: 'novo-roteiro', nome }, location.origin); } catch { toast('Abra o Preparativos para criar o roteiro.'); } };
+  W.J.querySelector('[data-existe]').onclick = () => { W.fecha(); listaParte(ep, k); };
+}
+function listaParte(ep, k) {
+  const cand = itensTodos().filter(i => !i._local && !i._ideia && !episodioDe(i) && podeMover(i)).sort((a, b) => (laneDe(a) === 'semData' ? 0 : 1) - (laneDe(b) === 'semData' ? 0 : 1) || String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'));
+  const W = janela(`<h3>Qual cartão é a Parte ${k} do Episódio ${ep}?</h3><p class="nota">Só aparecem cartões que ainda não estão em nenhum episódio e que a sua conta pode organizar. A ligação vale para a equipe toda.</p><input type="text" data-q placeholder="Buscar pelo título" style="width:100%;margin:6px 0"><div class="ep-esc-l"></div><div class="pes"><button class="bt perigo" data-c>Cancelar</button></div>`);
+  const lista = W.J.querySelector('.ep-esc-l'), q = W.J.querySelector('[data-q]');
+  const pinta2 = () => { const t = semAc(q.value.trim()), L2 = cand.filter(i => !t || semAc(i.titulo).includes(t));
+    lista.innerHTML = L2.length ? L2.map(i => `<button class="ep-esc-i" data-esc="${esc(i.id)}"><span class="nome">${esc(i.titulo || '(sem título)')}</span><span class="pil-st" style="--e:${ETAPAS[etapaDe(i)][1]}">${esc(NOMEF[laneDe(i)] || '')} · ${esc(ETAPAS[etapaDe(i)][0])}</span></button>`).join('') : '<p class="nota">Nenhum cartão encontrado.</p>';
+    lista.querySelectorAll('[data-esc]').forEach(b => b.onclick = async () => { const i = cand.find(x => x.id === b.dataset.esc); if (!i) return; W.fecha(); await grava(i, { ep: { n: ep, parte: k } }, `"${i.titulo}" agora é a Parte ${k} do Episódio ${ep}.`); }); };
+  q.oninput = pinta2; pinta2(); W.J.querySelector('[data-c]').onclick = W.fecha; q.focus();
+}
 // MOVER O EPISÓDIO INTEIRO (arrastar o cartão do episódio): formato, dia e Sem data valem para todas as partes; as partes mantêm a distância de dias entre elas
 const dia0 = t => { const x = new Date(t); x.setHours(0, 0, 0, 0); return +x; };
 async function moverEp(ep, alvo) {
@@ -910,10 +931,9 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
   if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
-  if (d.epSep !== undefined) { const i = itensTodos().find(x => x.id === d.epSep); if (!i) return; try { const m = epManual(); m[prepIdDe(i) || i.id] = null; localStorage.setItem('ep-episodios-manual', JSON.stringify(m)); } catch { } toast('A parte saiu do episódio (só neste navegador).'); pinta(); return; }
+  if (d.epSep !== undefined) { const i = itensTodos().find(x => x.id === d.epSep); if (!i) return; if (i.ep && podeMover(i)) { await grava(i, { ep: null }, 'A parte saiu do episódio.'); return; } try { const m = epManual(); m[prepIdDe(i) || i.id] = null; localStorage.setItem('ep-episodios-manual', JSON.stringify(m)); } catch { } toast('A parte saiu do episódio (só neste navegador).'); pinta(); return; }
   if (d.epCria !== undefined) { const ep = +d.epCria, k = +d.parte, ps = itensTodos().map(i => ({ i, e: episodioDe(i) })).filter(x => x.e && x.e.ep === ep).sort((a, b) => a.e.parte - b.e.parte), nome = nomeDaParte(ps, ep, k);
-    if (!await confirma(`Criar a Parte ${k} do Episódio ${ep}?`, `Abre um roteiro novo chamado "${nome}" nos Roteiros.`, 'Criar Parte ' + k)) return;
-    try { parent.postMessage({ ep: 'novo-roteiro', nome }, location.origin); } catch { toast('Abra o Preparativos para criar o roteiro.'); } return; }
+    escolheParte(ep, k, nome); return; }
   if (d.novoDia !== undefined) { novoRoteiroDoDia(+d.novoDia); return; }
   if (d.verDia !== undefined) { alternaDia(+d.verDia); return; }
   if (d.diaTodos !== undefined) { DIA = null; pinta(); return; }

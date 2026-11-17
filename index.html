@@ -261,6 +261,14 @@ html.cel .cal-cab h2{margin:0;font:700 var(--t-titulo)/1.2 var(--fonte);text-tra
 html.cel .cal-mes{margin-top:var(--e3);gap:var(--e2)}
 html.cel .cal-dia.fora{opacity:.45}
 html.cel .cal-dia{min-height:calc(190px - var(--nsem,2) * 22px);padding:var(--e2);background:var(--fundo);border:1px solid var(--linha);border-radius:10px;display:flex;flex-direction:column;gap:6px}
+html.cel .cal-dia{position:relative;cursor:pointer}
+html.cel .cal-dia.sel{background:var(--acento-suave);border-color:var(--acento)}
+html.cel .cal-dia .n{display:flex;align-items:baseline;gap:4px}
+.cal-mais{margin-left:auto;align-self:center;width:22px;height:22px;border:0;border-radius:6px;background:rgba(92,196,255,.16);color:#5cc4ff;font:700 15px/1 system-ui;cursor:pointer;opacity:0;transition:opacity .15s}
+.cal-dia:hover .cal-mais,.cal-mais:focus-visible{opacity:1}
+@media (hover:none){.cal-mais{opacity:.55}}
+html.cel .cal-mais{background:var(--acento-suave);color:var(--acento)}
+.dia-sel{display:flex;align-items:center;gap:12px;margin:12px clamp(16px,3vw,32px) 0;padding:8px 12px;border-radius:10px;background:rgba(92,196,255,.12);font-size:13px}
 html.cel .cal-dia.hj{outline:0;border-color:var(--acento);box-shadow:0 0 0 1px var(--acento) inset}
 html.cel .cal-dia .n{padding:0;font:700 18px/1 var(--fonte);color:var(--texto)}html.cel .cal-dia .n span{font:500 12px var(--fonte);text-transform:uppercase;letter-spacing:.04em;color:var(--texto-3);margin-right:4px}
 html.cel .cal-dia.hj .n{color:var(--acento)}
@@ -432,7 +440,7 @@ const prepIdDe = i => (/[?&]id=([A-Za-z0-9_-]+)/.exec(i?.abrir || '') || [])[1] 
 const ehIdeia = i => i?.programa === 'preparativos' && /aba=ideias/.test(i.abrir || '');
 const etapaDe = i => {
   if (ehIdeia(i)) return 'ideia';
-  if (i.programa === 'preparativos') { const p = PREPST[prepIdDe(i)]; if (!p) return 'roteiro'; if (p.st === 'pronto') return 'pronto'; if ((p.uso || []).length) return 'anim'; if (p.g > 0) return 'audio'; return 'roteiro'; }
+  if (i.programa === 'preparativos') { const p = PREPST[prepIdDe(i)]; if (!p) return 'roteiro'; if (p.st === 'pronto' && (!p.n || p.g >= p.n)) return 'pronto'; /* pronto só com todas as falas gravadas */ if ((p.uso || []).length) return 'anim'; if (p.g > 0) return 'audio'; return 'roteiro'; }
   return 'pronto';
 };
 const corEtapa = i => ETAPAS[etapaDe(i)][1];
@@ -575,12 +583,14 @@ function pinta() {
   else {
     const f = F.piv, H = I.filter(i => ['agendado', 'noAr'].includes(faixaDe(i)) && mesmoDia(quando(i), Date.now())).sort((a, b) => quando(a) - quando(b));
     const hoje = `<div class="hoje"><div class="rot"><b>hoje</b><small>${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</small></div>${H.length ? H.map(i => `<div class="h" data-mover="${esc(i.id)}" data-tipo="item" style="border-color:${corCanal(canalDe(i)?.id)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fh') : ''}<b>${esc(i.titulo)}</b><small>${hora(quando(i))} · ${esc(canalDe(i)?.nome || '')} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'} · ${faixaDe(i) === 'noAr' ? 'no ar' : atrasado(i) ? 'atrasado' : 'agendado'}</small></div>`).join('') : `<div class="vz">Nada saindo hoje.</div>`}</div>`;
+    const IL = DIA ? I.filter(i => dataAgenda(i) && mesmoDia(dataAgenda(i), DIA)) : I; // com um dia escolhido, só os itens dele
     const faixas = FAIXAS.map(([k, n, d]) => {
-      const lista = k === 'local' ? loc.filter(v => fmtOk(formatoLocal(v), f)) : I.filter(i => fmtOk(formatoDe(i), f) && laneDe(i) === k).sort(ordem(k === 'semData' ? 'concluido' : k));
+      const lista = k === 'local' ? (DIA ? [] : loc).filter(v => fmtOk(formatoLocal(v), f)) : IL.filter(i => fmtOk(formatoDe(i), f) && laneDe(i) === k).sort(ordem(k === 'semData' ? 'concluido' : k));
       if (k === 'local' && !lista.length) return '';
       return `<section class="faixa" style="--c:var(--${k})" data-faixa="${k}"><h2 data-foco="${k}" title="Ver só ${esc(n)}, organizado por dia e com filtros">${n}<i>${lista.length}</i><span class="sp"></span><span class="abre">ver tudo ›</span></h2><div class="dica">${d}</div><div class="cards">${lista.length ? cartoesPorFormato(lista, f) : '<div class="vazio">Arraste um cartão para cá</div>'}</div></section>`;
     }).join('');
-    $('#area').innerHTML = calTopoHtml(I, f) + hoje + `<div class="quadro">${faixas}</div>`;
+    const barraDia = DIA ? `<div class="dia-sel"><span>Mostrando só o dia <b>${ddmm(DIA)}</b></span><button class="bt sm" data-dia-todos>Ver todos os dias</button></div>` : '';
+    $('#area').innerHTML = calTopoHtml(I, f) + hoje + barraDia + `<div class="quadro">${faixas}</div>`;
     const q = $('.quadro'); if (q) q.scrollLeft = rolagem;
   }
   $('#rodInfo').textContent = `${(L.itens || []).length} na lista da equipe · ${L.em ? 'atualizada ' + dataH(L.em) : 'ainda não buscada'}${buscando ? ' · buscando…' : ''}`;
@@ -619,6 +629,8 @@ function evHtml(i) {
   return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
 }
 // CALENDÁRIO NO ALTO (pedido da dona, 17/11/2026): duas semanas grandes, com a cor de cada etapa; arrastar um cartão de baixo para um dia marca a data
+let DIA = null; // dia escolhido no calendário (clicar no dia): a lista de baixo mostra só os itens dele
+const ddmm = t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
 let SEM = 0, MESC = 0; // deslocamento: em semanas (1 a 4 semanas) ou em meses (Mês inteiro)
 // o que o calendário do alto mostra: 'mes' (padrão, pedido da dona em 17/11/2026) ou 1, 2, 3, 4 semanas; fica lembrado
 let MODOCAL = (() => { try { const v = localStorage.getItem('ep-publicacoes-semanas'); return v === 'mes' ? 'mes' : +v >= 1 && +v <= 4 ? +v : 'mes'; } catch { return 'mes'; } })();
@@ -631,7 +643,7 @@ function calTopoHtml(I, f) {
   const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], passo = mes ? 'um mês' : MODOCAL === 1 ? 'uma semana' : MODOCAL + ' semanas';
   let cel = '';
   for (let k = 0; k < total; k++) { const d = new Date(ini); d.setDate(ini.getDate() + k); const L2 = (porDia.get(d.toDateString()) || []).sort((x, y) => dataAgenda(x) - dataAgenda(y));
-    cel += `<div class="dia cal-dia${mesmoDia(d, Date.now()) ? ' hj' : ''}${mes && d.getMonth() !== mesBase ? ' fora' : ''}" data-dia="${+d}"><div class="n"><span>${nomes[k % 7]}</span> ${d.getDate()}</div>${L2.map(evHtml).join('')}</div>`; }
+    cel += `<div class="dia cal-dia${mesmoDia(d, Date.now()) ? ' hj' : ''}${mes && d.getMonth() !== mesBase ? ' fora' : ''}${DIA && mesmoDia(d, DIA) ? ' sel' : ''}" data-dia="${+d}" title="Clique para ver só este dia · botão direito: mais opções"><div class="n"><span>${nomes[k % 7]}</span> ${d.getDate()}<button class="cal-mais" data-novo-dia="${+d}" title="Novo roteiro para ${ddmm(d)}" aria-label="Novo roteiro para ${ddmm(d)}">+</button></div>${L2.map(evHtml).join('')}</div>`; }
   const desloc = mes ? MESC : SEM;
   return `<section class="cal-topo" aria-label="Calendário"><div class="cal-cab"><button class="bt sm ic" data-sem="-1" aria-label="Voltar ${passo}" title="Voltar ${passo}">‹</button><h2>${titulo}</h2><button class="bt sm ic" data-sem="1" aria-label="Avançar ${passo}" title="Avançar ${passo}">›</button>${desloc ? '<button class="lk" data-sem="0">hoje</button>' : ''}<span class="sp"></span><span class="lgs">${legEtapas()}</span><div class="seg cal-nsem" role="group" aria-label="O que mostrar no calendário">${[['mes', 'Mês inteiro'], [1, '1 sem.'], [2, '2 sem.'], [3, '3 sem.'], [4, '4 sem.']].map(([n, t]) => `<button data-nsem="${n}" class="${n === MODOCAL ? 'on' : ''}" title="${n === 'mes' ? 'Mostrar o mês inteiro' : n === 1 ? 'Mostrar 1 semana' : 'Mostrar ' + n + ' semanas'}">${t}</button>`).join('')}</div></div><div class="mes cal-mes" style="--nsem:${total / 7}">${cel}</div><div class="cal-rod">arraste um cartão de baixo para um dia · clique num evento para abrir</div></section>`;
 }
@@ -769,10 +781,31 @@ function painelMover(i, faixaAlvo, op = {}) {
   pi();
 }
 
+// ---------- clicar num dia do calendário (pedido da dona, 17/11/2026) ----------
+// clique = escolhe o dia (de novo = tira); botão direito (ou toque longo) = menu; "+" no dia = novo roteiro para ele; Esc tira a escolha
+function alternaDia(t) { const d0 = new Date(t); d0.setHours(0, 0, 0, 0); DIA = DIA && mesmoDia(DIA, d0) ? null : +d0; pinta(); }
+function novoRoteiroDoDia(t) {
+  if (!confirm(`Criar um roteiro para o dia ${ddmm(t)}? Você vai para os Roteiros já com esse dia.`)) return;
+  try { parent.postMessage({ ep: 'novo-roteiro', dia: +t }, location.origin); } catch { toast('Abra o Preparativos para criar o roteiro.'); }
+}
+function menuDia(x, y, t) {
+  document.querySelector('.mm-pop')?.remove(); const pop = document.createElement('div'); pop.className = 'mm-pop'; const sel = DIA && mesmoDia(DIA, t);
+  pop.innerHTML = `<button class="lk" data-novo-dia="${t}">Novo roteiro para ${ddmm(t)}</button><button class="lk" data-ver-dia="${t}">${sel ? 'Ver todos os dias' : 'Ver só este dia'}</button>`;
+  document.body.appendChild(pop); const w = pop.offsetWidth, h = pop.offsetHeight; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, x)) + 'px'; pop.style.top = Math.max(8, Math.min(innerHeight - h - 8, y)) + 'px';
+}
+let tToque = 0, ultToque = 0;
+document.addEventListener('click', e => { const c = e.target.closest('.cal-dia'); if (!c || e.target.closest('button,a,.ev') || Date.now() - ultToque < 800) return; alternaDia(+c.dataset.dia); });
+document.addEventListener('contextmenu', e => { const c = e.target.closest('.cal-dia'); if (!c || e.target.closest('.ev')) return; e.preventDefault(); menuDia(e.clientX, e.clientY, +c.dataset.dia); });
+document.addEventListener('touchstart', e => { const c = e.target.closest('.cal-dia'); if (!c || e.target.closest('.ev')) return; const p = e.touches[0]; clearTimeout(tToque); tToque = setTimeout(() => { ultToque = Date.now(); menuDia(p.clientX, p.clientY, +c.dataset.dia); }, 550); }, { passive: true });
+['touchend', 'touchmove', 'touchcancel'].forEach(n => document.addEventListener(n, () => clearTimeout(tToque), { passive: true }));
+addEventListener('keydown', e => { if (e.key !== 'Escape') return; const m = document.querySelector('.mm-pop'); if (m) m.remove(); else if (DIA) { DIA = null; pinta(); } });
 // ---------- cliques ----------
 document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
+  if (d.novoDia !== undefined) { novoRoteiroDoDia(+d.novoDia); return; }
+  if (d.verDia !== undefined) { alternaDia(+d.verDia); return; }
+  if (d.diaTodos !== undefined) { DIA = null; pinta(); return; }
   if (d.mais !== undefined) { // menu ⋯ do cartão: fora do cartão para não ser cortado pela rolagem da faixa
     const r = b.getBoundingClientRect(), pop = document.createElement('div'); pop.className = 'mm-pop'; pop.innerHTML = b.parentElement.querySelector('.mm-src')?.innerHTML || '';
     document.body.appendChild(pop); const w = pop.offsetWidth, hh = pop.offsetHeight; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; pop.style.top = (r.bottom + hh + 8 > innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + 'px';

@@ -313,6 +313,7 @@ html.cel .ep-pt.vz .pil-st.criar{color:var(--acento);font-weight:600}html.cel .e
 html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
 .ep-esc-l{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto;margin:6px 0 10px}
 .ep-esc-i{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--linha,rgba(255,255,255,.1));border-radius:8px;background:var(--fundo-2,transparent);color:var(--texto,inherit);font:inherit;cursor:pointer}
+.card .pil-st.falta{color:var(--aviso,#f0a30a)}.card .pil-st.falta::before{display:none}.toast .lk{color:var(--acento,#5ac8fa);margin-left:8px}
 .ep-pt .pil-st.falta{color:var(--aviso,#f0a30a)}.ep-pt .pil-st.falta::before{display:none}
 .ep-esc-l h4{flex:none;margin:8px 0 2px;font-size:12px;font-weight:600;color:var(--texto-3,#888)}
 .ep-esc-i:hover{background:var(--fundo-3,rgba(255,255,255,.08));border-color:var(--linha-forte,rgba(255,255,255,.2))}
@@ -576,21 +577,23 @@ function cardHtml(i, linha) {
     if (podePub) ac.push(`<button class="lk" data-pub="${esc(i.id)}">Postar…</button>`);
     ac.push(`<button class="lk" data-baixa="${esc(i.id)}">Baixar</button>`, `<button class="lk" data-desc="${esc(i.id)}">Descartar</button>`);
   } else {
-    const real = fx !== 'concluido' && fx !== 'pedido', loc = localDe(i), link = real ? 'https://youtu.be/' + encodeURIComponent(i.id) : '';
+    const real = fx !== 'concluido' && fx !== 'pedido' && !i.semLink, loc = localDe(i), link = real ? 'https://youtu.be/' + encodeURIComponent(i.id) : '';
     const img = real ? thumbYt(i.id) : i.thumb || '';
     const selo = canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'selo-canal') : '';
     th = real ? `<a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${img}')" aria-label="Abrir no YouTube">${selo}</a>`
       : `<span class="th${img ? '' : ' sem-img'}" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
-    tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${laneDe(i) === 'semData' ? '<span class="pil-sd">Sem data</span>' : linhaQuando(i)}${chipSit(i)}</div>
+    tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${laneDe(i) === 'semData' ? '<span class="pil-sd">Sem data</span>' : linhaQuando(i)}${chipSit(i)}${i.semLink ? `<span class="pil-st falta">${fx === 'pedido' ? 'falta o arquivo' : 'falta o link'}</span>` : ''}</div>
       <div class="ln">${canalHtml(canalDe(i))}${fx === 'pedido' ? `<span>${esc(MODOS[i.modo] || '')}</span>` : ''}</div>
       <div class="ln">${progIc(i.programa)}<span>${esc(PROGS[i.programa] || 'Publicações')}</span>${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>`;
     quemInfo = `<div class="ln"><span>por</span>${quemHtml(i.por)}</div>${i.editadoEm ? `<div class="ln mexeu"><span>mexido</span>${i.editadoPor && i.editadoPor !== i.por ? `<span>por</span>${quemHtml(i.editadoPor)}` : ''}<span>${dataH(i.editadoEm)}</span></div>` : ''}`;
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
+    if (!real && !loc && !i._local && (podeGerar(i) || i.abrir)) ac.push(`<button class="lk" data-baixar-item="${esc(i.id)}" title="Baixa o vídeo: gera aqui a partir do projeto, ou abre no programa">Baixar</button>`);
     if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O ${esc(PROGS[i.programa] || 'programa')} abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
     if (!real && podePub && !i._ideia) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
-    if (fx === 'concluido' && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
+    if ((fx === 'concluido' || i.semLink) && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
     if (loc) ac.push(`<button class="lk" data-baixa="${esc(loc.id)}">Baixar</button>`);
+    if (i.semLink && podeMover(i) && ['agendado', 'naoListado', 'noAr'].includes(fx)) ac.push(`<button class="lk forte" data-colar="${esc(i.id)}">Colar o link do YouTube…</button>`);
     if (!i._ideia && podeMover(i) && ['concluido', 'pedido'].includes(fx)) ac.push(`<button class="lk" data-proj-item="${esc(i.id)}" title="Liga este cartão a um projeto da nuvem do Animador">Escolher projeto do Animador…</button>`);
     if ((i.meu || L.adm) && !i._ideia) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
@@ -651,6 +654,7 @@ function cardEpHtml(ep, l) {
     const menu = [`<button class="lk" data-mover="${esc(i.id)}" data-tipo="item">Abrir / mover só esta parte…</button>`,
       mov ? `<button class="lk" data-proj-item="${esc(i.id)}">Escolher projeto do Animador…</button>` : '',
       mov && ['concluido', 'pedido', 'agendado'].includes(fx) ? `<button class="lk" data-ep-dia="${ep}">Mudar a data do episódio</button>` : '',
+      !jaNoYt(i) && (podeGerar(i) || i.abrir) ? `<button class="lk" data-baixar-item="${esc(i.id)}">Baixar</button>` : '',
       (fx === 'concluido' || i.semLink) && i.abrir ? `<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>` : '',
       i.semLink && mov && ['agendado', 'naoListado', 'noAr'].includes(fx) ? `<button class="lk" data-ep-links="${esc(i.id)}">Colar o link do YouTube…</button>` : '',
       `<button class="lk" data-ep-sep="${esc(i.id)}" title="Esta parte deixa de aparecer dentro do episódio e passa a ter a data dela">Separar deste episódio</button>`].join('');
@@ -660,7 +664,7 @@ function cardEpHtml(ep, l) {
 }
 // data do episódio: vale para TODAS as partes (as que já têm data também)
 function marcaDiaEp(ep) {
-  const ps = partesDoEp(ep).filter(i => podeMover(i) && ['concluido', 'pedido', 'agendado'].includes(faixaDe(i)));
+  const ps = partesDoEp(ep).filter(i => podeMover(i) && (['concluido', 'pedido', 'agendado'].includes(faixaDe(i)) || i.semLink));
   if (!ps.length) return toast('Essas partes já estão no YouTube: mude o dia de cada uma clicando nela.');
   const atual = dataDoEp(ep);
   const W = janela(`<h3>Data do Episódio ${ep}</h3><p>As ${ps.length} partes do episódio têm uma data só: esta.</p><div class="pes"><input type="datetime-local" data-em value="${emLocal(atual || Date.now() + 864e5)}" style="flex:1"></div><div class="pes"><button class="bt" data-c>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>`);
@@ -859,10 +863,35 @@ function ligaArrastar() {
   $$('[data-dia]').forEach(el => alvo(el, a => moverPara(a, { dia: +el.dataset.dia })));
 }
 const acha = a => a.ep ? null : a.tipo === 'local' ? (() => { const v = ESP.find(x => x.id === a.id); return v ? { ...v, _local: true } : null; })() : itensTodos().find(x => x.id === a.id);
+/* ARRASTAR NUNCA É BLOQUEADO (pedido da dona, 17/11/2026: "tudo que está aqui está na nuvem"). Qualquer cartão (ou episódio) vai para qualquer coluna e a mudança fica gravada na nuvem, para a equipe.
+   O que faltar para POSTAR (o link do YouTube, o arquivo) vira um selo discreto no cartão ("falta o link" / "falta o arquivo") e uma pergunta DEPOIS do movimento, que não obriga.
+   Se o vídeo já está no YouTube de verdade, o cartão move do mesmo jeito e aparece um aviso com "Desfazer" dizendo que no YouTube nada mudou (mude também no Studio). */
+function mudFaixa(i, F, t) {
+  const fx = faixaDe(i), real = !['concluido', 'pedido'].includes(fx) && !i.semLink;
+  const modo = { agendado: 'agendado', naoListado: 'naoListado', noAr: 'agora' }[F], priv = { agendado: 'private', naoListado: 'unlisted', noAr: 'public' }[F], quandoT = t !== undefined ? t : (i.publicaEm || null);
+  if (F === 'semData') return { concluido: true, pedido: false, semLink: false, publicaEm: null };
+  if (F === 'concluido') return { concluido: true, pedido: false, semLink: false, ...(quandoT ? { publicaEm: quandoT } : {}) };
+  if (F === 'pedido') return { pedido: true, concluido: false, semLink: true, publicaEm: quandoT };
+  if (real) return { modo, privacidade: priv, confirmadoEm: F === 'noAr' ? i.confirmadoEm || Date.now() : null, publicaEm: quandoT };
+  return { concluido: false, pedido: false, semLink: true, modo, privacidade: priv, confirmadoEm: F === 'noAr' ? Date.now() : null, publicaEm: quandoT };
+}
+const jaNoYt = i => !['concluido', 'pedido'].includes(faixaDe(i)) && !i.semLink;
+const camposDe = (i, m) => Object.fromEntries(Object.keys(m).map(k => [k, i[k]]));
+// aviso com botão Desfazer (não trava nada)
+function toastDesfazer(txt, desfaz) {
+  document.querySelector('.toast')?.remove(); const d = document.createElement('div'); d.className = 'toast'; d.innerHTML = '<span></span> <button class="lk forte" data-desf>Desfazer</button>'; d.firstChild.textContent = txt; document.body.appendChild(d);
+  clearTimeout(toastT); toastT = setTimeout(() => d.remove(), 10000); d.querySelector('[data-desf]').onclick = async () => { d.remove(); await desfaz(); };
+}
+function pedeDiaHora(titulo, coluna) {
+  return new Promise(ok => { let t = 0;
+    const W = janela(`<h3>Dia e hora</h3><p>Para ir para ${esc(coluna)}, "${esc(titulo)}" precisa de um dia e uma hora no futuro.</p><div class="pes"><input type="datetime-local" data-em value="${emLocal(Date.now() + 864e5)}" style="flex:1"></div><div class="pes"><button class="bt perigo" data-c>Cancelar</button><button class="bt pri" data-ok>Salvar</button></div>`);
+    W.aoFechar(() => ok(t || null)); W.J.querySelector('[data-c]').onclick = W.fecha;
+    W.J.querySelector('[data-ok]').onclick = () => { const v = new Date(W.J.querySelector('[data-em]').value).getTime(); if (!(v > Date.now() + 60e3)) return toast('Escolha um dia e uma hora no futuro.'); t = v; W.fecha(); }; });
+}
 async function moverPara(a, alvo) {
   if (a.ep) return moverEp(a.ep, alvo);
   const i = acha(a); if (!i) return;
-  if (i._local) { // vídeo deste navegador
+  if (i._local) { // vídeo deste navegador (o arquivo está aqui): organizar ou postar
     if (alvo.formato) { const v = ESP.find(x => x.id === i.id); v.formato = alvo.formato; try { await YT.fila.poe(v); } catch { } pinta(); return toast(`Foi para ${alvo.formato === 'short' ? 'Shorts' : 'Vídeos longos'}.`); }
     if (alvo.faixa === 'concluido' || alvo.faixa === 'semData') return organizar(ESP.find(x => x.id === i.id));
     if (alvo.faixa === 'pedido') return publicar(ESP.find(x => x.id === i.id), null, { via: 'fila' });
@@ -877,14 +906,44 @@ async function moverPara(a, alvo) {
     if (fx === 'agendado' && +d < Date.now() + 5 * 60e3) return toast('Esse dia já passou: escolha um dia no futuro.');
     return grava(i, { publicaEm: +d }, real ? `Mudou para ${dataH(+d)} no Estúdio. No YouTube, mude também no Studio.` : `Planejado para ${dataH(+d)}.`);
   }
-  if (alvo.faixa === 'semData') { if (fx !== 'concluido') return toast('Só os prontos (não publicados) ficam sem data.'); if (!i.publicaEm) return; return grava(i, { publicaEm: null }, 'Ficou sem data.'); }
+  if (!alvo.faixa || alvo.faixa === 'local') return; // "Neste navegador" não guarda cartões da nuvem
   if (alvo.faixa === 'concluido' && fx === 'concluido' && !i.publicaEm) return painelMover(i, null, { data: true }); // da faixa Sem data para a dos que têm dia: escolher o dia
-  if (!alvo.faixa || alvo.faixa === fx) return;
-  if (alvo.faixa === 'local') return toast('Essa faixa é só para vídeos exportados neste navegador.');
-  if (real && ['concluido', 'pedido'].includes(alvo.faixa)) return toast('Esse vídeo já está no YouTube: dá para mudar entre Agendados, Não listados e Publicados.');
-  if (alvo.faixa === 'pedido') { const v = localDe(i); if (!v) return toast('O vídeo não está neste navegador: abra o "Postar…" e escolha o arquivo.'); return publicar(v, null, { via: 'fila' }); }
-  if (alvo.faixa === 'concluido') return toast('Um pedido da fila sai pelo "Tirar" (quem pediu) ou é publicado.');
-  painelMover(i, alvo.faixa);
+  if (alvo.faixa === 'semData' && fx === 'concluido' && !i.publicaEm) return;
+  if (alvo.faixa === fx && !(alvo.faixa === 'semData')) return;
+  const F = alvo.faixa; let t;
+  if (F === 'agendado' && !(dataAgenda(i) > Date.now() + 60e3)) { t = await pedeDiaHora(i.titulo || 'este vídeo', 'Agendados'); if (!t) return; }
+  const mud = mudFaixa(i, F, t), yt = jaNoYt(i), antes = camposDe(i, mud), id = i.id;
+  const ok = await grava(i, mud, yt ? null : `Foi para ${NOMEF[F]}.`); if (!ok) return;
+  if (yt) toastDesfazer(`Foi para ${NOMEF[F]} no Estúdio. No YouTube o vídeo continua como estava: mude também pelo Studio.`, async () => { const i2 = L.itens.find(x => x.id === id); if (i2) await grava(i2, antes, 'Desfeito.'); });
+  else if (mud.semLink && ['agendado', 'naoListado', 'noAr'].includes(F)) setTimeout(() => pedeLinksLista([id]), 600);
+}
+async function moveEpParaFaixa(ep, ps, faixa) {
+  let t = dataDoEp(ep);
+  if (faixa === 'agendado' && !(t && t > Date.now() + 60e3)) { t = await pedeDataEp(ep, 'Agendados'); if (!t) return; }
+  const feitos = [], noYt = [], antes = new Map();
+  for (const i of ps) { const mud = mudFaixa(i, faixa, t); antes.set(i.id, camposDe(i, mud)); if (jaNoYt(i)) noYt.push(i); if (await grava(i, mud)) feitos.push(i); }
+  const msg = `Episódio ${ep}: ${feitos.length > 1 ? 'as ' + feitos.length + ' partes foram' : 'a parte foi'} para ${NOMEF[faixa]}${t ? ' (' + dataH(t) + ')' : ''}.`;
+  if (feitos.length && noYt.length) toastDesfazer(msg + ' ' + (noYt.length > 1 ? noYt.length + ' já estão' : '1 já está') + ' no YouTube e lá nada mudou: mude também pelo Studio.', async () => { for (const i of feitos) { const i2 = L.itens.find(x => x.id === i.id); if (i2) await grava(i2, antes.get(i.id)); } toast('Desfeito.'); });
+  else if (feitos.length) toast(msg);
+  if (faixa === 'concluido' && !t && feitos.length) marcaDiaEp(ep);
+  if (['agendado', 'naoListado', 'noAr'].includes(faixa)) setTimeout(() => pedeLinksEp(ep), 600); // depois, sem obrigar
+}
+// "Quer colar os links agora?": um campo por cartão/parte que ainda não tem o link do YouTube; "Depois" fecha sem mudar nada
+function pedeLinksEp(ep, soIds) {
+  const sem = partesDoEp(ep).filter(i => i.semLink && podeMover(i) && (!soIds || soIds.includes(i.id))).sort((a, b) => (episodioDe(a)?.parte || 0) - (episodioDe(b)?.parte || 0));
+  pedeLinksLista(sem.map(i => i.id), `O Episódio ${ep} já está na coluna.`);
+}
+function pedeLinksLista(ids, intro = '') {
+  const sem = ids.map(id => L.itens.find(x => x.id === id)).filter(i => i && i.semLink && podeMover(i)); if (!sem.length) return;
+  const nomeDe = i => { const e = episodioDe(i); return (e ? `Parte ${e.parte} · ` : '') + i.titulo; };
+  const W = janela(`<h3>Quer colar o link agora?</h3><p class="nota">${esc(intro)} Falta o link do YouTube de ${sem.length > 1 ? 'cada parte' : 'este vídeo'}: cole agora ou deixe para depois (o cartão fica com "falta o link").</p>${sem.map(i => `<label class="r">${esc(nomeDe(i))}</label><input type="text" data-lk="${esc(i.id)}" placeholder="https://youtu.be/…" style="width:100%">`).join('')}<div class="erro" data-er hidden></div><div class="pes"><button class="bt" data-c>Depois</button><button class="bt pri" data-ok>Salvar o link</button></div>`);
+  W.J.querySelector('[data-c]').onclick = W.fecha;
+  W.J.querySelector('[data-ok]').onclick = async () => { const er = W.J.querySelector('[data-er]'); er.hidden = true; const fi = []; let ruim = '';
+    for (const inp of W.J.querySelectorAll('[data-lk]')) { const v = inp.value.trim(); if (!v) continue; const id = idDoLink(v); if (!id) { ruim = 'Esse link não parece ser do YouTube: ' + v; break; } fi.push([inp.dataset.lk, id]); }
+    if (ruim) { er.textContent = ruim; er.hidden = false; return; } if (!fi.length) return W.fecha();
+    W.fecha(); let n = 0;
+    for (const [antigo, id] of fi) { const i = L.itens.find(x => x.id === antigo); if (!i) continue; const { meu, por, semLink, thumb, ...b } = paraNuvem(i); try { await salvaItem({ ...b, id, via: 'studio', semLink: undefined }, antigo); n++; } catch (er2) { toast('Não consegui gravar o link: ' + er2.message, '#ff6b5b'); } }
+    if (n) toast(`${n} link${n > 1 ? 's' : ''} gravado${n > 1 ? 's' : ''}.`); };
 }
 /* PARTE QUE AINDA NÃO EXISTE (pedido da dona, 17/11/2026): "criar o roteiro novo" OU "escolher um cartão que já existe" (um cartão do Publicações, também os que vieram de projetos do Animador).
    Escolher grava no PRÓPRIO cartão a ligação item.ep = { n: episódio, parte } (servidor guarda; vale para a equipe toda). "Separar deste episódio" tira. */
@@ -895,7 +954,7 @@ async function moverEp(ep, alvo) {
   if (!ps.length) return toast('Sua conta não pode organizar este episódio.');
   if (alvo.formato) { const f = alvo.formato, fa = ps.filter(i => formatoDe(i) !== f); if (!fa.length) return; let n = 0; for (const i of fa) if (await grava(i, { formato: f })) n++; if (n) toast(`O Episódio ${ep} (${n} parte${n > 1 ? 's' : ''}) foi para ${f === 'short' ? 'Shorts' : 'Vídeos longos'}.`); return; }
   if (alvo.dia) { // UMA data só: todas as partes ficam no dia solto, com a hora do episódio (ou 12:00)
-    const mov = ps.filter(i => ['concluido', 'pedido', 'agendado'].includes(faixaDe(i)));
+    const mov = ps.filter(i => ['concluido', 'pedido', 'agendado'].includes(faixaDe(i)) || i.semLink);
     if (!mov.length) return toast('Essas partes já estão no YouTube: mude o dia de cada uma clicando nela.');
     const atual = dataDoEp(ep), d = new Date(alvo.dia); d.setHours(0, 0, 0, 0); if (atual) { const o = new Date(atual); d.setHours(o.getHours(), o.getMinutes(), 0, 0); } else d.setHours(12, 0, 0, 0);
     if (mov.some(i => faixaDe(i) === 'agendado') && +d < Date.now() + 5 * 60e3) return toast('Esse dia já passou para uma parte agendada: escolha um dia no futuro.');
@@ -912,39 +971,7 @@ function pedeDataEp(ep, coluna) {
     W.aoFechar(() => ok(t || null)); W.J.querySelector('[data-c]').onclick = W.fecha;
     W.J.querySelector('[data-ok]').onclick = () => { const v = new Date(W.J.querySelector('[data-em]').value).getTime(); if (!(v > Date.now() + 60e3)) return toast('Escolha um dia e uma hora no futuro.'); t = v; W.fecha(); }; });
 }
-async function moveEpParaFaixa(ep, ps, faixa) {
-  let t = dataDoEp(ep);
-  if (faixa === 'agendado' && !(t && t > Date.now() + 60e3)) { t = await pedeDataEp(ep, 'Agendados'); if (!t) return; }
-  const modo = { agendado: 'agendado', naoListado: 'naoListado', noAr: 'agora' }[faixa], priv = { agendado: 'private', naoListado: 'unlisted', noAr: 'public' }[faixa], feitos = [], presas = [];
-  for (const i of ps) {
-    const fx = faixaDe(i), real = !['concluido', 'pedido'].includes(fx) && !i.semLink; // já é um vídeo do YouTube de verdade
-    if (real && ['semData', 'concluido', 'pedido'].includes(faixa)) { presas.push(i); continue; } // vídeo que já está no YouTube não volta para "não publicado"
-    let m;
-    if (faixa === 'semData') m = { concluido: true, pedido: false, semLink: false, publicaEm: null };
-    else if (faixa === 'concluido') m = { concluido: true, pedido: false, semLink: false, ...(t ? { publicaEm: t } : {}) };
-    else if (faixa === 'pedido') m = { pedido: true, concluido: false, semLink: true, publicaEm: t || null };
-    else if (real) m = { modo, privacidade: priv, confirmadoEm: faixa === 'noAr' ? i.confirmadoEm || Date.now() : null, publicaEm: t || i.publicaEm || null };
-    else m = { concluido: false, pedido: false, semLink: true, modo, privacidade: priv, confirmadoEm: faixa === 'noAr' ? Date.now() : null, publicaEm: t || i.publicaEm || null };
-    if (await grava(i, m)) feitos.push(i);
-  }
-  if (feitos.length) toast(`Episódio ${ep}: ${feitos.length > 1 ? 'as ' + feitos.length + ' partes foram' : 'a parte foi'} para ${NOMEF[faixa]}${t ? ' (' + dataH(t) + ')' : ''}.${presas.length ? ' ' + presas.length + ' já ' + (presas.length > 1 ? 'estão' : 'está') + ' no YouTube e ' + (presas.length > 1 ? 'ficaram' : 'ficou') + ' onde ' + (presas.length > 1 ? 'estavam' : 'estava') + '.' : ''}`);
-  else if (presas.length) toast('Essas partes já estão no YouTube e não voltam para "não publicado".');
-  if (faixa === 'concluido' && !t && feitos.length) marcaDiaEp(ep);
-  if (['agendado', 'naoListado', 'noAr'].includes(faixa)) setTimeout(() => pedeLinksEp(ep), 600); // depois, sem obrigar
-}
 // "Quer colar os links agora?": um campo por parte que ainda não tem o link do YouTube; "Depois" fecha sem mudar nada
-function pedeLinksEp(ep, soIds) {
-  const sem = partesDoEp(ep).filter(i => i.semLink && podeMover(i) && (!soIds || soIds.includes(i.id))).sort((a, b) => (episodioDe(a)?.parte || 0) - (episodioDe(b)?.parte || 0));
-  if (!sem.length) return;
-  const W = janela(`<h3>Quer colar os links agora?</h3><p class="nota">O Episódio ${ep} já está na coluna. Falta o link do YouTube de ${sem.length > 1 ? 'cada parte' : 'esta parte'}: cole agora ou deixe para depois (a parte fica com "falta o link").</p>${sem.map(i => `<label class="r">Parte ${episodioDe(i)?.parte || '?'} · ${esc(i.titulo)}</label><input type="text" data-lk="${esc(i.id)}" placeholder="https://youtu.be/…" style="width:100%">`).join('')}<div class="erro" data-er hidden></div><div class="pes"><button class="bt" data-c>Depois</button><button class="bt pri" data-ok>Salvar os links</button></div>`);
-  W.J.querySelector('[data-c]').onclick = W.fecha;
-  W.J.querySelector('[data-ok]').onclick = async () => { const er = W.J.querySelector('[data-er]'); er.hidden = true; const fi = []; let ruim = '';
-    for (const inp of W.J.querySelectorAll('[data-lk]')) { const v = inp.value.trim(); if (!v) continue; const id = idDoLink(v); if (!id) { ruim = 'Esse link não parece ser do YouTube: ' + v; break; } fi.push([inp.dataset.lk, id]); }
-    if (ruim) { er.textContent = ruim; er.hidden = false; return; } if (!fi.length) return W.fecha();
-    W.fecha(); let n = 0;
-    for (const [antigo, id] of fi) { const i = L.itens.find(x => x.id === antigo); if (!i) continue; const { meu, por, semLink, thumb, ...b } = paraNuvem(i); try { await salvaItem({ ...b, id, via: 'studio', semLink: undefined }, antigo); n++; } catch (er2) { toast('Não consegui gravar o link: ' + er2.message, '#ff6b5b'); } }
-    if (n) toast(`${n} link${n > 1 ? 's' : ''} gravado${n > 1 ? 's' : ''}.`); };
-}
 
 // grava a mudança de organização (formato, canal, data, situação) de um item da equipe
 async function grava(i, mud, msg) {
@@ -986,7 +1013,7 @@ function painelMover(i, faixaAlvo, op = {}) {
         : !real && !viraReal && epGrupo ? `<label class="r">Data</label><div class="nota">A data é do episódio: ${dataDoEp(epGrupo) ? esc(dataH(dataDoEp(epGrupo))) : 'ainda sem data'}. As partes de um episódio têm uma data só. <button class="bt sm" data-ep-dia-p="${epGrupo}">Mudar a data do episódio</button></div>`
         : !real && !viraReal ? `<label class="r">Data planejada (aparece na agenda)</label><div style="display:flex;gap:6px"><input type="datetime-local" data-em value="${esc(st.em)}" style="flex:1"><button class="bt sm" data-semdata>Sem data</button></div>`
         : st.sit === 'noAr' ? `<label class="r">Saiu em (opcional)</label><input type="datetime-local" data-em value="${esc(st.em)}">` : ''}
-      ${real ? `<div class="aviso" style="margin-top:16px">Isto muda só a organização do Estúdio. No YouTube, mude também pelo <a href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener" style="color:#5ac8fa">Studio</a>.</div>` : ''}
+      ${real && !i.semLink ? `<div class="aviso" style="margin-top:16px">Isto muda só a organização do Estúdio. No YouTube, mude também pelo <a href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener" style="color:#5ac8fa">Studio</a>.</div>` : ''}
       ${!podeMover(i) ? '<div class="erro">Sua conta não pode organizar os vídeos dos outros.</div>' : ''}
       ${st.erro ? `<div class="erro">${esc(st.erro)}</div>` : ''}
       <div class="pes">${!real && pode('publicacoes.publicar') ? '<button class="bt" data-pub>Postar…</button>' : ''}<button class="bt" data-c>Cancelar</button><button class="bt pri" data-ok${podeMover(i) ? '' : ' disabled'}>Salvar</button></div>`;
@@ -1050,6 +1077,8 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-mover],[data-pubi],[data-foco],[data-ep-dia]'); document.querySelector('.mm-pop')?.remove(); if (!b) return;
   const d = b.dataset;
   if (d.epDia !== undefined) { marcaDiaEp(+d.epDia); return; }
+  if (d.baixarItem !== undefined) { baixaItem(itensTodos().find(x => x.id === d.baixarItem)); return; }
+  if (d.colar !== undefined) { pedeLinksLista([d.colar]); return; }
   if (d.epLinks !== undefined) { const i = itensTodos().find(x => x.id === d.epLinks), e = i && episodioDe(i); if (e) pedeLinksEp(e.ep, [i.id]); return; }
   if (d.projItem !== undefined) { const i = itensTodos().find(x => x.id === d.projItem); if (i) escolheProjeto({ item: i }); return; }
   if (d.epSep !== undefined) { const i = itensTodos().find(x => x.id === d.epSep); if (!i) return; if (i.ep && podeMover(i)) { await grava(i, { ep: null }, 'A parte saiu do episódio.'); return; } try { const m = epManual(); m[prepIdDe(i) || i.id] = null; localStorage.setItem('ep-episodios-manual', JSON.stringify(m)); } catch { } toast('A parte saiu do episódio (só neste navegador).'); pinta(); return; }
@@ -1203,6 +1232,15 @@ function gerarVideo(i) {
     J.querySelector('[data-c]').onclick = () => { try { fr.contentWindow.postMessage({ tipo: 'ep-exp-cancela' }, location.origin); } catch { } acaba(null); };
     fr.src = i.abrir + (i.abrir.includes('?') ? '&' : '?') + 'exportar=publicacoes&item=' + encodeURIComponent(i.id);
   });
+}
+/* BAIXAR EM UM CLIQUE (pedido da dona, 17/11/2026): nunca é um passo antes de mover. Se o vídeo exportado está neste navegador, baixa na hora; se não está mas dá para gerar a partir do
+   projeto (Animador, Editor, Shorts), o Publicações gera ali mesmo e baixa; senão abre o projeto no programa. (Os vídeos exportados só ficam neste navegador: a nuvem guarda o projeto.) */
+async function baixaItem(i) {
+  if (!i) return; const loc = localDe(i); const nomeArq = v => (i.titulo || v.nome || 'video').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.' + ((v.nome || '').split('.').pop() || 'mp4');
+  if (loc) return baixar(loc.blob, nomeArq(loc));
+  if (podeGerar(i)) { const v = await gerarVideo(i); if (v?.blob) baixar(v.blob, nomeArq(v)); return; }
+  if (i.abrir) { window.open(i.abrir, '_blank', 'noopener'); return toast('Abri o projeto no ' + (PROGS[i.programa] || 'programa') + ': exporte de lá.'); }
+  toast('Este cartão não tem projeto nem arquivo para baixar.');
 }
 function publicarItem(i) {
   if (!i) return; const loc = localDe(i);

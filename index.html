@@ -321,6 +321,11 @@ html.cel .ep-card[draggable=true]:hover{border-color:var(--linha-forte)}
 .resp{position:absolute;left:8px;top:8px;z-index:3;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;overflow:hidden;background:var(--fundo-4,#444);color:var(--texto,#fff);box-shadow:0 0 0 2px var(--fundo-2,#1e1e21);font:600 12px system-ui}
 .resp img{width:100%;height:100%;object-fit:cover;display:block}.resp b{font:600 12px/1 system-ui}
 .ep-card .resp{left:10px;top:10px}
+.resp.cr{background:var(--rb);color:var(--rf)}.resp.cr b{font-weight:800}
+.ev-resp.cr>span{color:var(--rf);background:var(--rb);border-radius:999px;padding:1px 7px;font-size:10px;font-weight:800;line-height:1.5}
+.pil-cr{display:inline-flex;align-items:center;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:6px;white-space:nowrap}
+.pil-dp{display:inline-flex;align-items:center;border-radius:999px;padding:1px 7px;font-size:10px;font-weight:600;margin-left:6px;color:var(--texto-3,#9a9ca3);border:1px dashed var(--linha-forte,#555);white-space:nowrap}
+a.ev{text-decoration:none;display:block}
 .ep-card .tx:has(>.resp){padding-left:34px}
 .ev-resp{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;font-weight:600;color:var(--texto-2,#c9cbd1);white-space:nowrap;overflow:hidden}.ev-resp>span:last-child{overflow:hidden;text-overflow:ellipsis}
 .resp-av.s{width:18px;height:18px}.resp-av.s b{font-size:10px}
@@ -499,6 +504,7 @@ let IDEIAS = (() => { try { return JSON.parse(localStorage.getItem('ep-publicaco
 const prepIdDe = i => (/[?&]id=([A-Za-z0-9_-]+)/.exec(i?.abrir || '') || [])[1] || '';
 const ehIdeia = i => i?.programa === 'preparativos' && /aba=ideias/.test(i.abrir || '');
 const etapaDe = i => {
+  if (i._planilha) return stCrono(i._crono?.status) === 'pronto' ? 'pronto' : 'roteiro'; // vídeo só da planilha (ainda sem roteiro aqui)
   if (ehIdeia(i)) return 'ideia';
   if (i.programa === 'preparativos') { const p = PREPST[prepIdDe(i)]; if (!p) return 'roteiro'; if (p.st === 'pronto' && (!p.n || p.g >= p.n)) return 'pronto'; /* pronto só com todas as falas gravadas */ if ((p.uso || []).length) return 'anim'; if (p.g > 0) return 'audio'; return 'roteiro'; }
   return 'pronto';
@@ -506,24 +512,50 @@ const etapaDe = i => {
 const corEtapa = i => ETAPAS[etapaDe(i)][1];
 const chipSit = i => { if (!['semData', 'concluido', 'pedido'].includes(laneDe(i))) return ''; const [n, c] = ETAPAS[etapaDe(i)]; return `<span class="pil-st" style="--e:${c}">${esc(n)}</span>`; };
 const legEtapas = () => Object.values(ETAPAS).map(([n, c]) => `<span class="lg-et" style="--e:${c}">${esc(n)}</span>`).join('');
-const buscaSit = () => pede('/preparativos').then(r => { const m = {}; for (const x of r.itens || []) m[x.id] = { st: x.status || 'rascunho', n: x.n || 0, g: x.g || 0, uso: x.uso || [] }; PREPST = m; try { localStorage.setItem('ep-publicacoes-prepst', JSON.stringify(m)); } catch { } pinta(); }).catch(() => { });
+const buscaSit = () => pede('/preparativos').then(r => { const m = {}; for (const x of r.itens || []) m[x.id] = { st: x.status || 'rascunho', n: x.n || 0, g: x.g || 0, uso: x.uso || [], pasta: x.pasta || null }; PREPST = m; try { localStorage.setItem('ep-publicacoes-prepst', JSON.stringify(m)); } catch { } pinta(); }).catch(() => { });
 // as ideias da aba Ideias do Preparativos entram como cartão "Ideia", sem data; ao marcar um dia viram um item de verdade (id pi<ideia>)
 const buscaIdeias = () => pede('/ideias').then(r => { IDEIAS = ((r.ideias || {}).lista || []).filter(x => x?.titulo && x.id).map(x => ({ id: x.id, titulo: String(x.titulo), formato: x.formato === 'longo' ? 'longo' : 'short' })); try { localStorage.setItem('ep-publicacoes-ideias', JSON.stringify(IDEIAS)); } catch { } pinta(); }).catch(() => { });
 const ideiaItem = x => ({ id: 'pi' + String(x.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 17), titulo: x.titulo.slice(0, 100), concluido: true, programa: 'preparativos', abrir: '/preparativos/?aba=ideias', formato: x.formato, canal: { id: '', nome: '' }, modo: 'naoListado', privacidade: 'unlisted', enviadoEm: Date.now(), publicaEm: null, _ideia: true });
-const itensTodos = () => { const reais = L.itens || [], ids = new Set(reais.map(i => i.id)); return [...reais, ...IDEIAS.map(ideiaItem).filter(v => !ids.has(v.id))]; };
+/* ---------- CRONOGRAMA (pedido da dona, 23/11/2026): a PLANILHA "Organização Turma do Problems" manda ----------
+   Cartão de roteiro ligado a uma pasta do Drive (o roteiro foi trazido do Docs da pasta) usa a data, o status e o responsável da planilha;
+   vídeo da planilha que ainda não tem cartão aparece como cartão "da planilha" (só mostra: para mudar, muda na planilha). Nada é gravado aqui. */
+let CRONO = (() => { try { return JSON.parse(localStorage.getItem('ep-publicacoes-crono') || '[]') || []; } catch { return []; } })();
+const buscaCrono = () => pede('/cronograma').then(r => { CRONO = r.itens || []; try { localStorage.setItem('ep-publicacoes-crono', JSON.stringify(CRONO)); } catch { } pinta(); }).catch(() => { });
+const COR_RESP = { luigi: ['#fcd5d2', '#b3261e'], miriam: ['#ffe0c7', '#a84300'], problems: ['#c9f1f7', '#00707f'] };
+const ST_CRONO = { pronto: ['#b7e1c7', '#0d5c2a'], fazendo: ['#c6dafc', '#174ea6'], aguardando: ['#fce8b2', '#7a4f00'], parado: ['#f6c7c3', '#a50e0e'] };
+const stCrono = s => { s = String(s || '').toLowerCase(); return /pronto/.test(s) ? 'pronto' : /aguard/.test(s) ? 'aguardando' : /parad/.test(s) ? 'parado' : s ? 'fazendo' : ''; };
+const diaCrono = d => { if (!d) return null; const [a, m, dd] = String(d).split('-').map(Number); return a && m && dd ? new Date(a, m - 1, dd, 12, 0).getTime() : null; };
+const respCronoHtml = (c, pill) => { if (!c?.resp) return ''; const [bg, fg] = COR_RESP[c.resp.toLowerCase()] || ['#e6e9f0', '#3c4a6b'];
+  return pill ? `<span class="ev-resp cr" title="Responsável (planilha): ${esc(c.resp)}" style="--rb:${bg};--rf:${fg}"><span>● ${esc(c.resp.split(/\s+/)[0].toUpperCase())}</span></span>`
+    : `<span class="resp cr" title="Responsável (planilha): ${esc(c.resp)}" style="--rb:${bg};--rf:${fg}"><b>${esc(c.resp[0].toUpperCase())}</b></span>`; };
+const chipCrono = c => { if (!c?.status) return ''; const [bg, fg] = ST_CRONO[stCrono(c.status)] || ST_CRONO.fazendo; return `<span class="pil-cr" style="background:${bg};color:${fg}" title="Status na planilha">${esc(c.status)}</span>`; };
+const cronoItem = c => ({ id: 'pc' + String(c.pasta).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40), titulo: String(c.titulo).slice(0, 100), concluido: true, programa: 'preparativos', abrir: '/preparativos/', formato: c.formato === 'Longo' ? 'longo' : 'short', canal: { id: '', nome: '' }, modo: 'naoListado', privacidade: 'unlisted', enviadoEm: Date.now(), publicaEm: diaCrono(c.data), _planilha: true, _crono: c });
+const itensTodos = () => {
+  const porPasta = new Map(CRONO.filter(c => c.pasta).map(c => [c.pasta, c])), usadas = new Set();
+  // pelo NOME também (cartões antigos, sem pasta): "Shorts 4 - VOCÊ E SEU AMIGO…" = "Você e seu amigo…" (sem acento, sem "Shorts N -", um nome dentro do outro, 10+ letras)
+  const nm = t => semAc(t).replace(/^\s*shorts?\s*\d*\s*[-–:·]\s*/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const pNome = CRONO.filter(c => c.pasta && nm(c.titulo).length >= 10).map(c => [nm(c.titulo), c]);
+  const peloNome = i => { const t = nm(i.titulo); if (t.length < 10) return null; const a = pNome.filter(([n]) => t.includes(n) || n.includes(t)); return a.length === 1 ? a[0][1] : null; };
+  const reais = (L.itens || []).map(i => { const pid = i.programa === 'preparativos' ? prepIdDe(i) : '', pasta = pid && PREPST[pid]?.pasta, c = (pasta && porPasta.get(pasta)) || peloNome(i); if (!c) return i; if (!pasta) { if (usadas.has(c.pasta)) return i; }
+    usadas.add(c.pasta); const n = { ...i, _crono: c }; if (['concluido', 'pedido'].includes(faixaDe(i))) n.publicaEm = diaCrono(c.data); return n; }); // a data da planilha vale enquanto não foi postado
+  for (const p of Object.values(PREPST)) if (p?.pasta) usadas.add(p.pasta); // já tem roteiro no Preparativos (o cartão dele aparece quando existir)
+  const ids = new Set(reais.map(i => i.id));
+  const virt = CRONO.filter(c => c.pasta && !c.postado && c.aba === 'Cronograma' && !usadas.has(c.pasta)).map(cronoItem).filter(v => !ids.has(v.id));
+  return [...reais, ...IDEIAS.map(ideiaItem).filter(v => !ids.has(v.id)), ...virt];
+};
 /* ---------- EPISÓDIOS EM PARTES (pedido da dona, 17/11/2026) ----------
    Pelo NOME, nunca pela pasta ("Episódio 2 - Parte 1", "EP2 Parte 3", "Ep2 P4"…); sem "parte" no nome não agrupa. Um episódio (2 partes ou mais) é UM item: um cartão com as partes dentro,
    um evento no calendário (no dia da primeira parte que sai), na faixa da parte MENOS adiantada. Escolha manual (feita no Preparativos, mesma memória 'ep-episodios-manual', chave = id do roteiro) vale mais. */
 const semAc = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const RE_EP = /(?:^|[^a-z0-9])(?:episodio|epis|ep)\s*\.?\s*(\d{1,3})\b[^0-9]{0,15}?\b(?:parte|part|pt|p)\s*\.?\s*(\d{1,2})\b/;
 const epManual = () => { try { return JSON.parse(localStorage.getItem('ep-episodios-manual') || '{}') || {}; } catch { return {}; } };
-const episodioDe = i => { if (!i || i._local || i._ideia) return null; const m = epManual()[prepIdDe(i) || i.id]; if (m === null) return null; if (m && m.ep > 0) return { ep: +m.ep, parte: +m.parte || 0 }; if (i.ep && +i.ep.n > 0) return { ep: +i.ep.n, parte: +i.ep.parte || 0 }; /* ligação gravada no item, vale para a equipe */ const r = RE_EP.exec(semAc(i.titulo)); return r ? { ep: +r[1], parte: +r[2] } : null; };
+const episodioDe = i => { if (!i || i._local || i._ideia || i._planilha) return null; const m = epManual()[prepIdDe(i) || i.id]; if (m === null) return null; if (m && m.ep > 0) return { ep: +m.ep, parte: +m.parte || 0 }; if (i.ep && +i.ep.n > 0) return { ep: +i.ep.n, parte: +i.ep.parte || 0 }; /* ligação gravada no item, vale para a equipe */ const r = RE_EP.exec(semAc(i.titulo)); return r ? { ep: +r[1], parte: +r[2] } : null; };
 const gruposEp = lista => { const m = new Map(); for (const i of lista) { const e = episodioDe(i); if (e) { const l = m.get(e.ep) || []; l.push({ i, e }); m.set(e.ep, l); } } for (const [k, l] of [...m]) if (l.length < 2) m.delete(k); return m; };
 const ORDEM_LANE = ['semData', 'concluido', 'pedido', 'agendado', 'naoListado', 'noAr'];
 const ETAPA_ORD = ['ideia', 'roteiro', 'audio', 'anim', 'pronto'];
 const laneDe = i => { const e = faixaDe(i); return e === 'concluido' && !i.publicaEm ? 'semData' : e; };
 // ATRASADO: agendado que passou da hora sem ninguém confirmar, ou não publicado / pedido com a data planejada vencida
-const atrasado = i => !!i.publicaEm && i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
+const atrasado = i => !i._planilha && !!i.publicaEm && i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
 const linhaQuando = i => { const e = faixaDe(i), t = quando(i); return e === 'agendado' ? (atrasado(i) ? `era para sair ${dataH(t)}` : `sai ${dataH(t)}`) : e === 'noAr' ? `${i.publicaEm ? 'saiu' : 'publicado'} ${dataH(t)}` : (e === 'concluido' || e === 'pedido') && i.publicaEm ? `${atrasado(i) ? 'era planejado para' : 'planejado para'} ${dataH(i.publicaEm)}` : e === 'concluido' ? 'sem data' : `enviado ${dataH(t)}`; };
 
 // ---------- lista da equipe (um JSON, com cache) ----------
@@ -534,10 +566,10 @@ const pede = async (caminho, op = {}) => {
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error?.message || `A nuvem respondeu ${r.status}.`); return j;
 };
 let buscando = null, erroNuvem = '';
-const buscar = forca => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; buscaSit(); buscaIdeias(); }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
+const buscar = forca => { if (!forca && Date.now() - (L.em || 0) < VELHA) return Promise.resolve(); return buscando || (buscando = pede('/publicacoes').then(v => { guardaL(v); erroNuvem = ''; buscaSit(); buscaIdeias(); buscaCrono(); }).catch(e => { erroNuvem = e.message; }).finally(() => { buscando = null; pinta(); })); };
 const salvaItem = async (item, substitui) => { guardaL(await pede('/publicacoes', { method: 'POST', body: JSON.stringify({ item, ...(substitui ? { substitui } : {}) }) })); pinta(); };
 // o item como a nuvem quer receber (sem os campos que ela mesma põe)
-const paraNuvem = i => { const { meu, por, ...x } = i; return x; };
+const paraNuvem = i => { const { meu, por, _crono, _planilha, ...x } = i; return x; };
 
 // ---------- nomes de quem enviou ----------
 const NOMES = {};
@@ -612,7 +644,7 @@ const passa = i => {
   if (F.busca && !String(i.titulo || '').toLowerCase().includes(F.busca.toLowerCase())) return false;
   return true;
 };
-const podeMover = i => i._local || i.meu || L.adm || pode('publicacoes.publicar');
+const podeMover = i => !i._planilha && (i._local || i.meu || L.adm || pode('publicacoes.publicar')); // cartão "da planilha": muda na planilha
 
 // ---------- vídeos deste navegador (IndexedDB) ----------
 let ESP = [];
@@ -654,21 +686,22 @@ function cardHtml(i, linha) {
     const img = real ? thumbYt(i.id) : i.thumb || '';
     const selo = canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'selo-canal') : '';
     th = real ? `<a class="th" href="${link}" target="_blank" rel="noopener" style="background-image:url('${img}')" aria-label="Abrir no YouTube">${selo}</a>`
-      : `<span class="th${img ? '' : ' sem-img'}" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
-    tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${laneDe(i) === 'semData' ? '<span class="pil-sd">Sem data</span>' : linhaQuando(i)}${chipSit(i)}${i.semLink ? `<span class="pil-st falta">${fx === 'pedido' ? 'falta o arquivo' : 'falta o link'}</span>` : ''}</div>
+      : i._planilha ? `<span class="th sem-img"></span>` : `<span class="th${img ? '' : ' sem-img'}" data-pubi="${esc(i.id)}" title="${loc ? 'Postar' : podeGerar(i) ? 'Gerar o vídeo e postar' : 'Postar'}" style="cursor:pointer;${img ? `background-image:url('${img}')` : ''}">${selo}</span>`;
+    tx = `${atrasado(i) ? '<span class="selo-atr">atrasado</span>' : ''}<b title="${esc(i.titulo)}">${esc(i.titulo || '(sem título)')}</b><div class="quando">${laneDe(i) === 'semData' ? '<span class="pil-sd">Sem data</span>' : linhaQuando(i)}${i._planilha ? '' : chipSit(i)}${chipCrono(i._crono)}${i._crono ? `<span class="pil-dp" title="${i._planilha ? 'Este vídeo está na planilha e ainda não tem roteiro no Preparativos. Para mudar a data, o status ou o responsável, mude na planilha.' : 'A data, o status e o responsável vêm da planilha'}">${i._planilha ? 'só na planilha' : 'da planilha'}</span>` : ''}${i.semLink ? `<span class="pil-st falta">${fx === 'pedido' ? 'falta o arquivo' : 'falta o link'}</span>` : ''}</div>
       <div class="ln">${canalHtml(canalDe(i))}${fx === 'pedido' ? `<span>${esc(MODOS[i.modo] || '')}</span>` : ''}</div>
       <div class="ln">${progIc(i.programa)}<span>${esc(PROGS[i.programa] || 'Publicações')}</span>${loc ? '·<span>vídeo neste navegador</span>' : ''}</div>`;
     quemInfo = `<div class="ln"><span>por</span>${quemHtml(i.por)}</div>${i.editadoEm ? `<div class="ln mexeu"><span>mexido</span>${i.editadoPor && i.editadoPor !== i.por ? `<span>por</span>${quemHtml(i.editadoPor)}` : ''}<span>${dataH(i.editadoEm)}</span></div>` : ''}`;
     if (real) ac.push(`<a class="lk" href="${link}" target="_blank" rel="noopener">Abrir</a>`, `<a class="lk" href="https://studio.youtube.com/video/${encodeURIComponent(i.id)}/edit" target="_blank" rel="noopener">Studio</a>`, `<button class="lk" data-cp="${esc(link)}">Copiar link</button>`);
     if (atrasado(i)) ac.unshift(fx === 'agendado' ? `<button class="lk forte" data-conf="${esc(i.id)}">Confirmar que saiu</button>` : `<button class="lk forte" data-mover="${esc(i.id)}" data-tipo="item">Já saiu? / Nova data</button>`);
-    if (!real && !loc && !i._local && (podeGerar(i) || i.abrir)) ac.push(`<button class="lk" data-baixar-item="${esc(i.id)}" title="Baixa o vídeo: gera aqui a partir do projeto, ou abre no programa">Baixar</button>`);
+    if (i._planilha) ac.push(`<a class="lk forte" href="/preparativos/" target="_top" title="No Preparativos, na seção Do cronograma, clique em Trazer do Drive">Trazer o roteiro</a>`, `<a class="lk" href="https://drive.google.com/drive/folders/${encodeURIComponent(i._crono.pasta)}" target="_blank" rel="noopener">Pasta no Drive</a>`);
+    else if (!real && !loc && !i._local && (podeGerar(i) || i.abrir)) ac.push(`<button class="lk" data-baixar-item="${esc(i.id)}" title="Baixa o vídeo: gera aqui a partir do projeto, ou abre no programa">Baixar</button>`);
     if (!real && !loc && podeGerar(i)) ac.push(`<button class="lk forte" data-gera="${esc(i.id)}" title="O ${esc(PROGS[i.programa] || 'programa')} abre aqui dentro e exporta o vídeo">Gerar o vídeo</button>`);
-    if (!real && podePub && !i._ideia) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
-    if ((fx === 'concluido' || i.semLink) && i.abrir) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
+    if (!real && podePub && !i._ideia && !i._planilha) ac.push(`<button class="lk" data-pubi="${esc(i.id)}">Postar…</button>`);
+    if ((fx === 'concluido' || i.semLink) && i.abrir && !i._planilha) ac.push(`<a class="lk" href="${esc(i.abrir)}" target="_blank" rel="noopener">Abrir no ${esc(PROGS[i.programa] || 'programa')}</a>`);
     if (loc) ac.push(`<button class="lk" data-baixa="${esc(loc.id)}">Baixar</button>`);
     if (i.semLink && podeMover(i) && ['agendado', 'naoListado', 'noAr'].includes(fx)) ac.push(`<button class="lk forte" data-colar="${esc(i.id)}">Colar o link do YouTube…</button>`);
     if (!i._ideia && podeMover(i) && ['concluido', 'pedido'].includes(fx)) ac.push(`<button class="lk" data-proj-item="${esc(i.id)}" title="Liga este cartão a um projeto da nuvem do Animador">Escolher projeto do Animador…</button>`);
-    if ((i.meu || L.adm) && !i._ideia) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
+    if ((i.meu || L.adm) && !i._ideia && !i._planilha) ac.push(`<button class="lk" data-tira="${esc(i.id)}" title="${real ? 'Tira só desta lista (no YouTube o vídeo continua)' : 'Tira da lista da equipe'}">Tirar</button>`);
   }
   if (mov && !i._local) ac.push(`<button class="lk" data-resp="${esc(i.id)}" title="Uma pessoa da equipe como responsável por este cartão">${i.resp ? 'Mudar o responsável…' : 'Definir responsável…'}</button>`);
   if (mov) ac.unshift(`<button class="lk" data-mover="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}" style="color:#fff">Mover…</button>`);
@@ -680,7 +713,7 @@ function cardHtml(i, linha) {
     acHtml = p1.join('') + (p2.length || quemInfo ? `<button class="lk mais-bt" data-mais title="Mais ações" aria-label="Mais ações">⋯</button><div class="mm-src" hidden>${quemInfo}${p2.join('')}</div>` : '');
   }
   const fmtChip = linha ? `<span class="chip-fmt">${fmt === 'short' ? 'Short' : 'Vídeo longo'}</span>` : '';
-  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${respHtml(i.resp)}${th}<div class="tx">${tx}</div><div class="ac">${acHtml}</div></div>`;
+  return `<div class="card ${fmt}${linha ? ' linha' : ''}${!i._local && atrasado(i) ? ' atr' : ''}" style="--c:${!i._local && atrasado(i) ? 'var(--atr)' : cor}" data-id="${esc(i.id)}" data-tipo="${i._local ? 'local' : 'item'}"${mov && !linha ? ' draggable="true"' : ''}>${fmtChip}${i._crono?.resp ? respCronoHtml(i._crono) : respHtml(i.resp)}${th}<div class="tx">${tx}</div><div class="ac">${acHtml}</div></div>`;
 }
 // na aba Todos, cada faixa separa Shorts de Vídeos longos (17/11/2026)
 const cardsDe = lista => { const G = gruposEp(lista.filter(i => !i._local)), feitos = new Set(); return lista.map(i => { const e = episodioDe(i), l = e && G.get(e.ep); if (!l) return cardHtml(i); if (feitos.has(e.ep)) return ''; feitos.add(e.ep); return cardEpHtml(e.ep, l); }).join(''); };
@@ -886,7 +919,8 @@ function agrupaEpCal(lista, todas = lista) {
 function evHtml(i) {
   if (i._ep) { const et = ETAPAS[etapaDe(i._mais)]; return `<button class="ev" style="--cc:${et[1]}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}" title="${esc('Episódio ' + i._ep + ' · ' + i._nPartes + ' partes · primeira parte: ' + i.titulo)}">${respPill(i._resp)}Episódio ${i._ep} <em>${i._nPartes} partes · ${et[0]}</em></button>`; }
   const fx = faixaDe(i), arr = podeMover(i) && fx !== 'noAr', et = ETAPAS[etapaDe(i)];
-  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${respPill(i.resp)}${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
+  if (i._planilha) return `<a class="ev st-${fx}" style="--cc:${corEtapa(i)}" href="/preparativos/" target="_top" data-id="${esc(i.id)}" title="${esc(`${i.titulo} · só na planilha (${i._crono?.status || ''}) · para trazer o roteiro: Preparativos › Do cronograma › Trazer do Drive`)}">${respCronoHtml(i._crono, true)}${esc(i.titulo)} <em>${esc(i._crono?.status || 'planilha')}</em></a>`;
+  return `<button class="ev st-${fx}${atrasado(i) ? ' atr' : ''}" style="--cc:${corEtapa(i)}" data-mover="${esc(i.id)}" data-tipo="item" data-id="${esc(i.id)}"${arr ? ' draggable="true"' : ''} title="${esc(`${i.titulo} · ${et[0]} · ${canalDe(i)?.nome || 'sem canal'} · ${NOMEF[laneDe(i)]} · ${formatoDe(i) === 'short' ? 'Short' : 'vídeo longo'}`)}">${i._crono?.resp ? respCronoHtml(i._crono, true) : respPill(i.resp)}${canalDe(i)?.id ? fotoHtml(canalDe(i).id, 'fe') : ''}${esc(i.titulo)} <em>${atrasado(i) ? 'atrasado' : et[0]}</em></button>`;
 }
 // CALENDÁRIO NO ALTO (pedido da dona, 17/11/2026): duas semanas grandes, com a cor de cada etapa; arrastar um cartão de baixo para um dia marca a data
 let DIA = null; // dia escolhido no calendário (clicar no dia): a lista de baixo mostra só os itens dele
@@ -1464,7 +1498,7 @@ $('#btCanais').onclick = () => {
 async function comeca() {
   await EstudioLogin.pronto;
   if (window.EstudioPerm?.programa?.('publicacoes') === false) { $('#area').innerHTML = '<div class="aviso" style="margin:20px clamp(16px,4vw,56px)">Você ainda não tem acesso ao Publicações. Peça para um ADM liberar.</div>'; return; }
-  pinta(); buscar(false); buscaSit(); buscaIdeias(); await carregaLocais();
+  pinta(); buscar(false); buscaSit(); buscaIdeias(); buscaCrono(); await carregaLocais();
   const q = new URLSearchParams(location.search).get('video');
   if (q) { history.replaceState(null, '', location.pathname); const v = ESP.find(x => x.id === q);
     if (v?.concluir) { try { await organizar(v); } catch (er) { toast('Não consegui pôr em Não publicados: ' + er.message + ' (o vídeo ficou em "Neste navegador").', '#ff6b5b'); } }

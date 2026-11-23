@@ -555,7 +555,7 @@ const ORDEM_LANE = ['semData', 'concluido', 'pedido', 'agendado', 'naoListado', 
 const ETAPA_ORD = ['ideia', 'roteiro', 'audio', 'anim', 'pronto'];
 const laneDe = i => { const e = faixaDe(i); return e === 'concluido' && !i.publicaEm ? 'semData' : e; };
 // ATRASADO: agendado que passou da hora sem ninguém confirmar, ou não publicado / pedido com a data planejada vencida
-const atrasado = i => !i._planilha && !!i.publicaEm && i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
+const atrasado = i => !i._planilha && !(i._crono && stCrono(i._crono.status) === 'pronto') && !!i.publicaEm && /* na planilha já está Pronto: não cobra */ i.publicaEm < Date.now() && ['agendado', 'concluido', 'pedido'].includes(faixaDe(i));
 const linhaQuando = i => { const e = faixaDe(i), t = quando(i); return e === 'agendado' ? (atrasado(i) ? `era para sair ${dataH(t)}` : `sai ${dataH(t)}`) : e === 'noAr' ? `${i.publicaEm ? 'saiu' : 'publicado'} ${dataH(t)}` : (e === 'concluido' || e === 'pedido') && i.publicaEm ? `${atrasado(i) ? 'era planejado para' : 'planejado para'} ${dataH(i.publicaEm)}` : e === 'concluido' ? 'sem data' : `enviado ${dataH(t)}`; };
 
 // ---------- lista da equipe (um JSON, com cache) ----------
@@ -875,7 +875,7 @@ function pinta() {
     const q = $('.quadro'); if (q) q.scrollLeft = rolagem;
   }
   $('#rodInfo').textContent = `${(L.itens || []).length} na lista da equipe · ${L.em ? 'atualizada ' + dataH(L.em) : 'ainda não buscada'}${buscando ? ' · buscando…' : ''}`;
-  const ATR0 = (L.itens || []).filter(i => passa(i) && atrasado(i)).sort((a, b) => a.publicaEm - b.publicaEm);
+  const ATR0 = itensTodos().filter(i => !i._ideia && passa(i) && atrasado(i)) /* com a data da planilha (23/11/2026) */.sort((a, b) => a.publicaEm - b.publicaEm);
   // as partes de um episódio contam como UM só (uma linha por episódio): regra da data única
   const GEA = gruposEp(itensTodos().filter(i => !i._local)), vistoEA = new Set(), ATR = [];
   for (const i of ATR0) { const e = episodioDe(i), g = e && GEA.get(e.ep); if (g) { if (vistoEA.has(e.ep)) continue; vistoEA.add(e.ep); ATR.push({ i, ep: e.ep, n: g.length }); } else ATR.push({ i }); }
